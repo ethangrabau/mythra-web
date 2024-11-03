@@ -1,4 +1,6 @@
 // src/components/layout/Header.tsx
+console.log("Header component loaded");
+
 import { Mic, Brain, Book, Plus } from 'lucide-react'
 
 export default function Header() {

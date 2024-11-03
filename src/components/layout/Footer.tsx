@@ -1,3 +1,5 @@
+console.log("Footer component loaded");
+
 export default function Footer() {
     return (
       // Added bg-white/50 and backdrop-blur-sm
