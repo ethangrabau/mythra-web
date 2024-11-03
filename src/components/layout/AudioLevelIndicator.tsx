@@ -1,34 +1,43 @@
+// src/components/layout/AudioLevelIndicator.tsx
+'use client';
 import React from 'react';
 
-const AudioLevelIndicator = ({ level = 0, isRecording = false }) => {
-  // Scale from 0-60 to 0-100
-  const percentage = Math.min((level / 60) * 100, 100);
-  
-  // Get color based on percentage
-  const getColor = (pct: number) => {
-    if (pct < 33) return 'bg-blue-500';
-    if (pct < 66) return 'bg-green-500';
-    return 'bg-red-500';
-  };
+interface AudioLevelIndicatorProps {
+  level: number;
+  isRecording: boolean;
+}
+
+const AudioLevelIndicator = ({ level = 0, isRecording = false }: AudioLevelIndicatorProps) => {
+  // Create 10 segments for the level indicator
+  const segments = 10;
+  const segmentLevel = Math.floor((level / 60) * segments);
   
   return (
-    <div className="flex items-center gap-2">
-      {/* Recording status indicator */}
-      <div 
-        className={`w-3 h-3 rounded-full ${
-          isRecording 
-            ? 'bg-red-500 animate-pulse' 
-            : 'bg-gray-300'
-        }`}
-      />
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full transition-colors ${
+          isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-300'
+        }`} />
+        <span className="text-xs text-gray-500">
+          {isRecording ? 'Recording' : 'Ready'}
+        </span>
+      </div>
       
-      {/* Level meter background */}
-      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-        {/* Active level indicator */}
-        <div 
-          className={`h-full transition-all duration-100 ${getColor(percentage)}`}
-          style={{ width: `${percentage}%` }}
-        />
+      <div className="flex gap-0.5 h-4">
+        {Array.from({ length: segments }).map((_, i) => (
+          <div
+            key={i}
+            className={`flex-1 rounded-sm transition-all ${
+              i < segmentLevel
+                ? i < segments * 0.6
+                  ? 'bg-green-500'
+                  : i < segments * 0.8
+                    ? 'bg-yellow-500'
+                    : 'bg-red-500'
+                : 'bg-gray-200'
+            }`}
+          />
+        ))}
       </div>
     </div>
   );

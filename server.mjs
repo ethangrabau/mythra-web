@@ -1,189 +1,290 @@
-// server.mjs
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs/promises';
 import { createWriteStream, mkdirSync } from 'fs';
+import crypto from 'crypto';
 
 // Get the current directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Create directories for storing audio files
+// Constants and configurations
 const AUDIO_DIR = join(__dirname, 'audio-chunks');
 const RECORDINGS_DIR = join(__dirname, 'recordings');
-console.log('=== Initializing Server ===');
-console.log('Audio directories created at:', {
-  AUDIO_DIR,
-  RECORDINGS_DIR
-});
+const METADATA_DIR = join(__dirname, 'metadata');
 
-// Ensure directories exist synchronously before proceeding
+console.log('=== Initializing Server ===');
+
+// Ensure all required directories exist
 try {
-  mkdirSync(AUDIO_DIR, { recursive: true });
-  mkdirSync(RECORDINGS_DIR, { recursive: true });
-  console.log('Audio directories created/verified');
+  for (const dir of [AUDIO_DIR, RECORDINGS_DIR, METADATA_DIR]) {
+    mkdirSync(dir, { recursive: true });
+    console.log(`Directory created/verified: ${dir}`);
+  }
 } catch (error) {
   console.error('Failed to create directories:', error);
-  process.exit(1);  // Exit if we can't create directories
+  process.exit(1);
+}
+
+// Session tracking
+const activeSessions = new Map();
+
+class AudioSession {
+  constructor(sessionId) {
+    this.sessionId = sessionId;
+    this.startTime = Date.now();
+    this.chunks = new Map();
+    this.status = 'initializing';
+    this.metadata = {
+      totalDuration: 0,
+      totalSize: 0,
+      lastChunkId: -1,
+      checksums: new Set()
+    };
+  }
+
+
+  async addChunk(chunkId, data, metadata) {
+    try {
+      // Verify chunk order
+      if (chunkId !== this.metadata.lastChunkId + 1) {
+        throw new Error(`Invalid chunk order. Expected ${this.metadata.lastChunkId + 1}, got ${chunkId}`);
+      }
+
+      // Calculate and verify checksum
+      const calculatedChecksum = await this.calculateChecksum(data);
+      if (metadata.checksum && calculatedChecksum !== metadata.checksum) {
+        throw new Error('Checksum verification failed');
+      }
+
+      // Prevent duplicate chunks
+      if (this.metadata.checksums.has(calculatedChecksum)) {
+        throw new Error('Duplicate chunk detected');
+      }
+
+      // Save chunk
+      const chunkPath = join(AUDIO_DIR, this.sessionId, `chunk-${chunkId}.webm`);
+      await fs.writeFile(chunkPath, data);
+
+      // Update metadata
+      this.chunks.set(chunkId, {
+        path: chunkPath,
+        timestamp: Date.now(),
+        size: data.length,
+        checksum: calculatedChecksum
+      });
+
+      this.metadata.lastChunkId = chunkId;
+      this.metadata.checksums.add(calculatedChecksum);
+      this.metadata.totalSize += data.length;
+      this.metadata.totalDuration += 1000; // 1-second chunks
+
+      // Save session metadata
+      await this.saveMetadata();
+
+      return true;
+    } catch (error) {
+      console.error(`Error processing chunk ${chunkId}:`, error);
+      throw error;
+    }
+  }
+
+  async calculateChecksum(data) {
+    return crypto.createHash('sha256').update(Buffer.from(data)).digest('hex');
+  }
+
+  async saveMetadata() {
+    const metadataPath = join(METADATA_DIR, `${this.sessionId}.json`);
+    const metadata = {
+      sessionId: this.sessionId,
+      startTime: this.startTime,
+      status: this.status,
+      totalDuration: this.metadata.totalDuration,
+      totalSize: this.metadata.totalSize,
+      lastChunkId: this.metadata.lastChunkId,
+      checksums: Array.from(this.metadata.checksums)
+    };
+    await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+  }
+
+  async finalize() {
+    try {
+      this.status = 'processing';
+      await this.saveMetadata();
+
+      // Verify all chunks are present
+      const expectedChunks = Array.from({ length: this.metadata.lastChunkId + 1 }, (_, i) => i);
+      const missingChunks = expectedChunks.filter(id => !this.chunks.has(id));
+
+      if (missingChunks.length > 0) {
+        throw new Error(`Missing chunks: ${missingChunks.join(', ')}`);
+      }
+
+      // Concatenate chunks
+      const outputPath = join(RECORDINGS_DIR, `recording-${this.sessionId}.webm`);
+      const output = createWriteStream(outputPath);
+
+      for (let i = 0; i <= this.metadata.lastChunkId; i++) {
+        const chunk = this.chunks.get(i);
+        const chunkData = await fs.readFile(chunk.path);
+        output.write(chunkData);
+      }
+
+      await new Promise((resolve, reject) => {
+        output.on('finish', resolve);
+        output.on('error', reject);
+        output.end();
+      });
+
+      this.status = 'completed';
+      await this.saveMetadata();
+
+      return outputPath;
+    } catch (error) {
+      this.status = 'failed';
+      await this.saveMetadata();
+      throw error;
+    }
+  }
 }
 
 const server = new WebSocketServer({ port: 8080 });
 console.log('WebSocket server running on ws://localhost:8080');
 
-async function concatenateChunks(sessionDir, sessionId) {
-  console.log(`Starting concatenation for session ${sessionId}`);
-  try {
-    // Get all chunks in order
-    const files = await fs.readdir(sessionDir);
-    console.log('Found files:', files.join(', '));
-    
-    const chunkFiles = files
-      .filter(f => f.startsWith('chunk-') && f.endsWith('.webm'))
-      .sort((a, b) => {
-        const numA = parseInt(a.split('-')[1]);
-        const numB = parseInt(b.split('-')[1]);
-        return numA - numB;
-      });
-    
-    console.log('Sorted chunk files:', chunkFiles.join(', '));
-
-    if (chunkFiles.length === 0) {
-      throw new Error('No chunk files found in directory');
-    }
-
-    // Create complete recording file
-    const outputPath = join(RECORDINGS_DIR, `recording-${sessionId}.webm`);
-    console.log('Creating output file at:', outputPath);
-    
-    const outputStream = createWriteStream(outputPath);
-    
-    // Concatenate all chunks
-    for (const file of chunkFiles) {
-      const chunkPath = join(sessionDir, file);
-      console.log(`Reading chunk: ${file}`);
-      const chunkData = await fs.readFile(chunkPath);
-      console.log(`Writing chunk: ${file} (${chunkData.length} bytes)`);
-      outputStream.write(chunkData);
-    }
-    
-    return new Promise((resolve, reject) => {
-      outputStream.on('finish', () => {
-        console.log(`Recording saved: recording-${sessionId}.webm`);
-        resolve(outputPath);
-      });
-      outputStream.on('error', (error) => {
-        console.error('Error writing output:', error);
-        reject(error);
-      });
-      outputStream.end();
-    });
-  } catch (error) {
-    console.error('Error in concatenateChunks:', error);
-    throw error;
-  }
-}
-
 server.on('connection', (socket) => {
   console.log('=== New Client Connected ===');
-  
-  // Create a session ID and directory for this connection
-  const sessionId = new Date().toISOString().replace(/[:.]/g, '-');
-  const sessionDir = join(AUDIO_DIR, sessionId);
-  let chunkCounter = 0;
-  let isRecording = false;
+  let currentSession = null;
 
-  // Create session directory
-  fs.mkdir(sessionDir, { recursive: true })
-    .then(() => console.log('Session directory created:', sessionDir))
-    .catch(error => console.error('Error creating session directory:', error));
+  const sendError = (message) => {
+    socket.send(JSON.stringify({
+      type: 'error',
+      payload: { message },
+      timestamp: Date.now()
+    }));
+  };
+  
+  const sendStatus = (status) => {
+    socket.send(JSON.stringify({
+      ...status,
+      timestamp: Date.now()
+    }));
+  };
 
   socket.on('message', async (data, isBinary) => {
-    console.log('=== Received Message ===');
-    console.log('Is Binary:', isBinary);
-    
     try {
       if (isBinary) {
-        // Handle binary data (audio chunks)
-        isRecording = true;
-        const chunkPath = join(sessionDir, `chunk-${chunkCounter}.webm`);
-        await fs.writeFile(chunkPath, data);
-        console.log(`Saved audio chunk ${chunkCounter} for session ${sessionId}`);
-        chunkCounter++;
+        // Handle binary audio data
+        if (!currentSession) {
+          throw new Error('No active session');
+        }
 
-        socket.send(JSON.stringify({
-          type: 'ack',
-          chunkId: chunkCounter - 1,
-          sessionId
-        }));
+        const chunkId = currentSession.metadata.lastChunkId + 1;
+        await currentSession.addChunk(chunkId, data, {});
+
+        sendStatus({
+          sessionId: currentSession.sessionId,
+          chunkId,
+          totalDuration: currentSession.metadata.totalDuration,
+          totalSize: currentSession.metadata.totalSize
+        });
       } else {
-        // Handle text/JSON messages
-        const messageStr = data.toString();
-        console.log('Text message received:', messageStr);
-        
-        try {
-          const message = JSON.parse(messageStr);
-          console.log('Parsed message:', message);
-          console.log('Recording state:', { isRecording, chunkCounter });
+        // Handle control messages
+        const message = JSON.parse(data.toString());
+        console.log('Received message:', message);
 
-          if (message.type === 'command' && message.action === 'stop') {
-            console.log('=== Processing Stop Command ===');
-            try {
-              // List directory contents
-              const files = await fs.readdir(sessionDir);
-              console.log('Directory contents:', files);
-              
-              if (files.length > 0) {
-                console.log('Starting concatenation...');
-                const outputPath = await concatenateChunks(sessionDir, sessionId);
-                console.log('Concatenation complete:', outputPath);
-                
-                // Verify the file was created
-                try {
-                  await fs.access(outputPath);
-                  console.log('Output file verified at:', outputPath);
-                  
-                  socket.send(JSON.stringify({
-                    type: 'recording_complete',
-                    sessionId,
-                    path: outputPath
-                  }));
-                } catch (err) {
-                  console.error('Failed to verify output file:', err);
-                }
-              } else {
-                console.log('No files found to concatenate');
+        switch (message.type) {
+          case 'command':
+            if (message.payload.action === 'start') {
+              if (currentSession) {
+                throw new Error('Session already in progress');
               }
+              const sessionId = message.sessionId || `session-${Date.now()}`;
+              console.log('Starting new session:', sessionId);
+              currentSession = new AudioSession(sessionId);
+              activeSessions.set(sessionId, currentSession);
               
-              isRecording = false;
-            } catch (error) {
-              console.error('Error processing stop command:', error);
-              socket.send(JSON.stringify({
-                type: 'error',
-                message: 'Failed to process recording'
-              }));
+              // Create session directory
+              await fs.mkdir(join(AUDIO_DIR, sessionId), { recursive: true });
+              sendStatus({ 
+                sessionId, 
+                status: 'initialized',
+                type: 'status',
+                timestamp: Date.now()
+              });
+            } else if (message.payload.action === 'stop') {
+              if (!currentSession) {
+                throw new Error('No active session to stop');
+              }
+              const outputPath = await currentSession.finalize();
+              sendStatus({
+                type: 'recording_complete',
+                sessionId: currentSession.sessionId,
+                path: outputPath,
+                duration: currentSession.metadata.totalDuration,
+                size: currentSession.metadata.totalSize
+              });
+              currentSession = null;
             }
-          }
-        } catch (parseError) {
-          console.error('Failed to parse message:', parseError, 'Raw message:', messageStr);
+            break;
+        
+          case 'metadata':
+            if (!currentSession) {
+              throw new Error('No active session');
+            }
+            // Metadata handling is done in addChunk
+            break;
+        
+          case 'chunk':
+            if (!currentSession) {
+              throw new Error('No active session');
+            }
+            console.log('Received chunk metadata:', message.payload);
+            break;
+        
+          default:
+            console.warn('Unknown message type:', message.type);
+            break;
         }
       }
     } catch (error) {
-      console.error('Error in message handler:', error);
+      console.error('Error processing message:', error);
+      sendError(error.message);
     }
   });
 
-  socket.on('close', () => {
+  socket.on('close', async () => {
+    if (currentSession) {
+      try {
+        await currentSession.finalize();
+      } catch (error) {
+        console.error('Error finalizing session:', error);
+      }
+      currentSession = null;
+    }
     console.log('Client disconnected');
-    console.log(`Session ${sessionId} ended with ${chunkCounter} chunks recorded`);
   });
 
   socket.on('error', (error) => {
     console.error('WebSocket error:', error);
+    sendError('Internal server error');
   });
 });
+
+// Clean up old sessions periodically
+setInterval(() => {
+  const now = Date.now();
+  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+  
+  activeSessions.forEach((session, sessionId) => {
+    if (now - session.startTime > maxAge) {
+      activeSessions.delete(sessionId);
+    }
+  });
+}, 60 * 60 * 1000); // Check every hour
 
 // Log active connections every 30 seconds
 setInterval(() => {
   console.log(`Active connections: ${server.clients.size}`);
+  console.log(`Active sessions: ${activeSessions.size}`);
 }, 30000);

@@ -1,67 +1,129 @@
-// useAudioRecorder.ts
+// src/lib/hooks/useAudioRecorder.ts
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { calculateChecksum } from '../utils/audio';
+import type { 
+  AudioChunkMetadata, 
+  SessionMetadata, 
+  WebSocketMessage, 
+  AudioRecorderState,
+  WebSocketPayload 
+} from '../types/audio';
 
-interface UseAudioRecorderReturn {
-  isRecording: boolean;
+// Add this interface at the top of the file
+interface WindowWithAudioContext extends Window {
+  webkitAudioContext: typeof AudioContext;
+}
+
+export function useAudioRecorder(): AudioRecorderState & {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
-  error: string | null;
-  audioLevel: number;
-  isConnected: boolean;  // WebSocket connection status
-}
-
-interface WindowWithAudioContext extends Window {
-  webkitAudioContext?: typeof AudioContext;
-}
-
-export function useAudioRecorder(): UseAudioRecorderReturn {
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+} {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
+  const [sessionData, setSessionData] = useState<SessionMetadata | null>(null);
+
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
-  // Initialize WebSocket connection
-  useEffect(() => {
-    console.log("Initializing WebSocket connection...");
-
-    const socket = new WebSocket('ws://localhost:8080'); // Use WebSocket API directly
-
-    socket.onopen = () => {
-      console.log('WebSocket connected');
-      setIsConnected(true);
-    };
-
-    socket.onmessage = (event) => {
-      console.log('Received message from server:', event.data);
-    };
-
-    socket.onerror = (error) => {
-      console.error('WebSocket connection error:', error);
-      setError('Connection error');
-    };
-
-    socket.onclose = () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-    };
-
-    socketRef.current = socket;
-
-    return () => {
-      console.log("Cleaning up WebSocket connection...");
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.close();
-      }
-    };
+  const sendWebSocketMessage = useCallback((message: WebSocketMessage) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(message));
+    }
   }, []);
 
-  // Monitor audio levels when recording
+  const connectWebSocket = useCallback(() => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) return;
+
+    console.log('Initializing WebSocket connection...');
+    const ws = new WebSocket('ws://localhost:8080');
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+      reconnectAttempts.current = 0;
+      setError(null);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+      
+      if (reconnectAttempts.current < maxReconnectAttempts) {
+        reconnectAttempts.current++;
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+        setTimeout(connectWebSocket, delay);
+      } else {
+        setError('Connection lost. Please refresh the page.');
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+      setError('Connection error occurred');
+    };
+
+    ws.onmessage = async (event) => {
+        try {
+          const message = JSON.parse(event.data) as WebSocketMessage;
+          console.log('Received message:', message);
+    
+          switch (message.type) {
+            case 'error': {
+              const errorPayload = message.payload as WebSocketPayload['error'];
+              setError(errorPayload.message);
+              break;
+            }
+            case 'recording_complete': {
+              setSessionData(prev => prev ? { ...prev, status: 'completed' } : null);
+              break;
+            }
+            case 'ack': {
+              const ackPayload = message.payload as WebSocketPayload['ack'];
+              console.log('Chunk acknowledged:', ackPayload.chunkId);
+              break;
+            }
+            case 'status': {
+              const statusPayload = message.payload as WebSocketPayload['status'];
+              console.log('Status update:', statusPayload.status);
+              break;
+            }
+            case 'command': {
+              const commandPayload = message.payload as WebSocketPayload['command'];
+              console.log('Command received:', commandPayload.action);
+              break;
+            }
+            case 'chunk': {
+              const chunkPayload = message.payload as WebSocketPayload['chunk'];
+              console.log('Chunk message:', chunkPayload);
+              break;
+            }
+            default: {
+              console.warn('Unknown message type:', message);
+            }
+          }
+        } catch (err) {
+          console.error('Error processing message:', err);
+        }
+      };
+
+    socketRef.current = ws;
+  }, []);
+
+  useEffect(() => {
+    connectWebSocket();
+    return () => {
+      socketRef.current?.close();
+    };
+  }, [connectWebSocket]);
+
   useEffect(() => {
     let frameId: number;
 
@@ -80,104 +142,153 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     }
 
     return () => {
-      if (frameId) {
-        cancelAnimationFrame(frameId);
-      }
+      if (frameId) cancelAnimationFrame(frameId);
     };
   }, [isRecording]);
 
   const startRecording = useCallback(async () => {
     try {
       setError(null);
-      console.log('Starting recording...');
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Got media stream');
-      
-      const windowWithAudio = window as WindowWithAudioContext;
-      const AudioContextClass = window.AudioContext || windowWithAudio.webkitAudioContext;
-      
-      if (!AudioContextClass) {
-        throw new Error('AudioContext not supported in this browser');
+      if (!isConnected) {
+        throw new Error('Not connected to server');
       }
+  
+      // Initialize session first
+      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      const audioContext = new AudioContextClass();
-      audioContextRef.current = audioContext;
+      // Send start message to server
+      const startMessage: WebSocketMessage = {
+        type: 'command',
+        payload: { action: 'start', sessionId },
+        sessionId,
+        timestamp: Date.now()
+      };
       
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify(startMessage));
+      } else {
+        throw new Error('WebSocket not connected');
+      }
+  
+      console.log('Starting recording...');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Fixed AudioContext initialization
+      const AudioContext = window.AudioContext || 
+        ((window as unknown as WindowWithAudioContext).webkitAudioContext);
+      const audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
+      
       analyser.fftSize = 1024;
       analyser.smoothingTimeConstant = 0.8;
       source.connect(analyser);
+      
       analyserRef.current = analyser;
-      console.log('Audio analysis setup complete');
+      audioContextRef.current = audioContext;
+
+      // Initialize session with correct type
+      const newSessionData: SessionMetadata = {
+        sessionId: `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        startTime: Date.now(),
+        status: 'recording',
+        chunks: [],
+        totalDuration: 0,
+        totalSize: 0
+      };
+      setSessionData(newSessionData);
 
       const recorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
       });
 
-      recorder.ondataavailable = async (event: BlobEvent) => {
-        if (event.data.size > 0) {
-          console.log('Audio data chunk size:', event.data.size);
-          
-          // Convert blob to ArrayBuffer and send through WebSocket
-          if (socketRef.current?.readyState === WebSocket.OPEN) {
-            try {
-              const arrayBuffer = await event.data.arrayBuffer();
-              socketRef.current.send(arrayBuffer);
-              console.log('Sent audio chunk through WebSocket');
-            } catch (error) {
-              console.error('Error sending audio chunk:', error);
-            }
+      recorder.ondataavailable = async (event) => {
+        if (event.data.size > 0 && socketRef.current?.readyState === WebSocket.OPEN) {
+          try {
+            const arrayBuffer = await event.data.arrayBuffer();
+            const checksum = await calculateChecksum(arrayBuffer);
+            
+            // Send audio chunk
+            socketRef.current.send(arrayBuffer);
+            
+            // Create metadata with correct type
+            const metadata: AudioChunkMetadata = {
+              type: 'metadata',
+              chunkId: sessionData?.chunks.length ?? 0,
+              timestamp: Date.now(),
+              size: arrayBuffer.byteLength,
+              checksum,
+              sessionId: newSessionData.sessionId
+            };
+
+            // Send metadata as WebSocketMessage
+            const message: WebSocketMessage = {
+              type: 'chunk',
+              payload: metadata,
+              sessionId: newSessionData.sessionId,
+              timestamp: Date.now()
+            };
+
+            sendWebSocketMessage(message);
+            
+            // Update session data
+            setSessionData(prev => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                chunks: [...prev.chunks, metadata],
+                totalSize: prev.totalSize + arrayBuffer.byteLength,
+                totalDuration: prev.totalDuration + 1000
+              };
+            });
+          } catch (err) {
+            console.error('Error sending audio chunk:', err);
+            setError('Failed to send audio chunk');
           }
         }
       };
 
-      recorder.start(1000);  // Collect chunks every second
-      setMediaRecorder(recorder);
+      recorder.start(1000); // 1 second chunks
+      mediaRecorder.current = recorder;
       setIsRecording(true);
-      console.log('Recording started');
 
     } catch (err) {
-      console.error('Error starting recording:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start recording');
-    }
-  }, []);
+        console.error('Error starting recording:', err);
+        setError(err instanceof Error ? err.message : 'Failed to start recording');
+      }
+    }, [isConnected, sendWebSocketMessage]);
 
   const stopRecording = useCallback(() => {
     console.log('Stopping recording...');
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    
+    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
+      mediaRecorder.current.stop();
+      mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
       
       if (analyserRef.current) {
         analyserRef.current.disconnect();
         analyserRef.current = null;
       }
-  
+
       if (audioContextRef.current) {
         audioContextRef.current.close();
         audioContextRef.current = null;
       }
-      
-      // Updated stop message sending
-      if (socketRef.current?.readyState === WebSocket.OPEN) {
-        console.log('Sending stop message to server');
-        const stopMessage = JSON.stringify({
-          type: 'command',
-          action: 'stop'
-        });
-        console.log('Stop message content:', stopMessage);  // Debug log
-        socketRef.current.send(stopMessage);
-      } else {
-        console.log('WebSocket not ready to send stop message');
-      }
-      
+
+      const stopMessage: WebSocketMessage = {
+        type: 'command',
+        payload: { action: 'stop' },
+        sessionId: sessionData?.sessionId ?? '',
+        timestamp: Date.now()
+      };
+
+      sendWebSocketMessage(stopMessage);
+
       setIsRecording(false);
       setAudioLevel(0);
-      console.log('Recording stopped');
+      setSessionData(prev => prev ? { ...prev, status: 'processing' } : null);
     }
-  }, [mediaRecorder]);
+  }, [sessionData, sendWebSocketMessage]);
 
   return {
     isRecording,
@@ -185,6 +296,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     stopRecording,
     error,
     audioLevel,
-    isConnected
+    isConnected,
+    sessionData
   };
 }
