@@ -12,9 +12,12 @@
   "dependencies": {
     "@types/express": "^5.0.0",
     "@types/ws": "^8.5.13",
+    "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "form-data": "^4.0.1",
     "lucide-react": "^0.454.0",
     "next": "15.0.2",
+    "node-fetch": "^2.7.0",
     "react": "19.0.0-rc-02c0e824-20241028",
     "react-dom": "19.0.0-rc-02c0e824-20241028",
     "socket.io": "^4.8.1",

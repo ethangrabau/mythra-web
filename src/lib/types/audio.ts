@@ -17,7 +17,7 @@ export interface AudioChunkMetadata {
     totalSize: number;
   }
   
-  export type WebSocketMessageType = 'error' | 'command' | 'chunk' | 'ack' | 'status' | 'recording_complete';
+  export type WebSocketMessageType = 'error' | 'command' | 'chunk' | 'ack' | 'status' | 'recording_complete' | "transcription";
   
   interface ErrorPayload {
     message: string;
@@ -51,6 +51,7 @@ export interface AudioChunkMetadata {
     ack: AckPayload;
     status: StatusPayload;
     recording_complete: RecordingCompletePayload;
+    transcription: { text: string; timestamp: number };
   }
   
   export interface WebSocketMessage {
@@ -66,4 +67,10 @@ export interface AudioChunkMetadata {
     audioLevel: number;
     isConnected: boolean;
     sessionData: SessionMetadata | null;
+    transcriptionData: TranscriptionData | null; 
   }
+
+  export interface TranscriptionData {
+    timestamp: number;
+    text: string;
+}
