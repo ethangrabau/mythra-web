@@ -1,15 +1,23 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Mic } from 'lucide-react';
+import Card from '@/components/ui/card';
 import type { TranscriptionData } from '@/lib/types/audio';
 
 interface TranscriptionViewerProps {
-  transcriptions: TranscriptionData[];  // Changed to an array
+  transcriptions: TranscriptionData[];
   isRecording: boolean;
+  sessionActive: boolean;
+  sessionId?: string;
 }
 
-export default function TranscriptionViewer({ transcriptions, isRecording }: TranscriptionViewerProps) {
+const TranscriptionViewer = ({
+  transcriptions,
+  isRecording,
+  sessionActive,
+  sessionId
+}: TranscriptionViewerProps) => {
   const viewerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new content arrives
@@ -18,21 +26,6 @@ export default function TranscriptionViewer({ transcriptions, isRecording }: Tra
       viewerRef.current.scrollTop = viewerRef.current.scrollHeight;
     }
   }, [transcriptions, isRecording]);
-
-  if (transcriptions.length === 0) {
-    return (
-      <div className="rounded-lg border bg-gray-50 p-8 text-center text-gray-500">
-        {isRecording ? (
-          <div className="flex items-center justify-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-            <p>Waiting for transcription...</p>
-          </div>
-        ) : (
-          <p>No transcription available</p>
-        )}
-      </div>
-    );
-  }
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -43,11 +36,24 @@ export default function TranscriptionViewer({ transcriptions, isRecording }: Tra
     });
   };
 
+  if (!sessionActive) {
+    return (
+      <Card className="min-h-[400px] flex items-center justify-center text-gray-500">
+        <p>Start a new session to begin recording</p>
+      </Card>
+    );
+  }
+
   return (
-    <div className="rounded-lg border bg-white shadow-sm">
+    <Card className="min-h-[400px] flex flex-col">
       {/* Header */}
       <div className="border-b px-4 py-3 flex items-center justify-between">
-        <h3 className="font-medium text-gray-900">Transcription</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-medium text-gray-900">Session Transcript</h3>
+          {sessionId && (
+            <span className="text-xs text-gray-500">({sessionId})</span>
+          )}
+        </div>
         {isRecording && (
           <div className="flex items-center gap-2 text-sm text-red-600">
             <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
@@ -59,24 +65,39 @@ export default function TranscriptionViewer({ transcriptions, isRecording }: Tra
       {/* Content */}
       <div 
         ref={viewerRef}
-        className="max-h-[500px] overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-4"
       >
-        {transcriptions.map((transcription, index) => (
-          <div key={index} className="flex gap-3 group">
-            <div className="flex-shrink-0 text-sm text-gray-500">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs text-gray-500 mb-1">
-                {formatTimestamp(transcription.timestamp)}
+        {(!transcriptions || transcriptions.length === 0) ? (
+          <div className="h-full flex items-center justify-center text-gray-500">
+            {isRecording ? (
+              <div className="flex items-center gap-2">
+                <Mic className="w-4 h-4 animate-pulse" />
+                <p>Listening...</p>
               </div>
-              <p className="text-gray-800 whitespace-pre-wrap">
-                {transcription.text}
-              </p>
-            </div>
+            ) : (
+              <p>No transcriptions yet</p>
+            )}
           </div>
-        ))}
+        ) : (
+          transcriptions.map((transcription, index) => (
+            <div key={index} className="flex gap-3 group">
+              <div className="flex-shrink-0 text-sm text-gray-500">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs text-gray-500 mb-1">
+                  {formatTimestamp(transcription.timestamp)}
+                </div>
+                <p className="text-gray-800 whitespace-pre-wrap">
+                  {transcription.text}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
       </div>
-    </div>
+    </Card>
   );
-}
+};
+
+export default TranscriptionViewer;

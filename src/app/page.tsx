@@ -1,31 +1,93 @@
-import MainContent from '@/components/layout/MainContent'
-import { PlayCircle, Images } from 'lucide-react'
+'use client';
+
+import React from 'react';
+import { PlayCircle, StopCircle, Mic } from 'lucide-react';
+import Button from '@/components/ui/button';
+import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
+import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 
 export default function Home() {
+  const { 
+    isRecording, 
+    startRecording, 
+    stopRecording,
+    transcriptions,
+    sessionActive,
+    sessionId,
+    error,
+    audioLevel,
+    endSession
+  } = useAudioRecorder();
+
   return (
-    <MainContent>
-      <div className="space-y-8">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Welcome to Mythra</h2>
-          <p className="text-gray-600 mt-2">Start a new session or view past recordings.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <button className="p-8 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] text-left group">
-            <div className="flex items-center gap-3 mb-2">
-              <PlayCircle className="w-6 h-6 text-green-600 group-hover:scale-110 transition-transform" />
-              <h3 className="text-lg font-semibold text-gray-800">Start New Session</h3>
+    <main className="flex-1 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header section unchanged */}
+        
+        {/* Main Content */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Transcription Viewer */}
+          <div className="md:col-span-4">
+          <TranscriptionViewer
+            transcriptions={(() => { 
+              console.log('Transcriptions passed to viewer:', transcriptions); 
+              return transcriptions ?? [];
+            })()}
+            isRecording={isRecording}
+            sessionActive={sessionActive ?? false}
+            sessionId={sessionId ?? ''}
+            />
+          </div>
+
+          {/* Recording Controls */}
+          <div className="md:col-span-4 flex justify-center space-x-4">
+            {sessionActive ? (
+              isRecording ? (
+                <Button 
+                  variant="danger" 
+                  onClick={stopRecording} 
+                  icon={<StopCircle className="w-6 h-6" />}
+                >
+                  Stop Recording
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  onClick={startRecording} 
+                  icon={<PlayCircle className="w-6 h-6" />}
+                >
+                  Start Recording
+                </Button>
+              )
+            ) : (
+              <Button 
+                variant="primary" 
+                onClick={startRecording} 
+                icon={<Mic className="w-6 h-6" />}
+              >
+                Start Session
+              </Button>
+            )}
+
+            {sessionActive && (
+              <Button 
+                variant="secondary" 
+                onClick={endSession} 
+                icon={<StopCircle className="w-6 h-6" />}
+              >
+                End Session
+              </Button>
+            )}
+          </div>
+
+          {/* Display any error messages */}
+          {error && (
+            <div className="md:col-span-4 text-center text-red-500">
+              {error}
             </div>
-            <p className="text-sm text-gray-600">Begin recording a new D&D session with AI-powered visualizations.</p>
-          </button>
-          <button className="p-8 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] text-left group">
-            <div className="flex items-center gap-3 mb-2">
-              <Images className="w-6 h-6 text-purple-600 group-hover:scale-110 transition-transform" />
-              <h3 className="text-lg font-semibold text-gray-800">View Recaps</h3>
-            </div>
-            <p className="text-sm text-gray-600">Browse through past session recaps and generated imagery.</p>
-          </button>
+          )}
         </div>
       </div>
-    </MainContent>
-  )
+    </main>
+  );
 }

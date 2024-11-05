@@ -1,4 +1,4 @@
-// src/lib/types/audio.ts
+// src/types/audio.ts
 export interface AudioChunkMetadata {
     type: string;
     chunkId: number;
@@ -8,50 +8,68 @@ export interface AudioChunkMetadata {
     sessionId: string;
   }
   
+  export type SessionStatus = 'recording' | 'initializing' | 'processing' | 'completed' | 'failed';
+  
   export interface SessionMetadata {
     sessionId: string;
     startTime: number;
-    status: 'initializing' | 'recording' | 'processing' | 'completed' | 'failed';
+    status: SessionStatus;
     chunks: AudioChunkMetadata[];
     totalDuration: number;
     totalSize: number;
   }
   
-  export type WebSocketMessageType = 'error' | 'command' | 'chunk' | 'ack' | 'status' | 'recording_complete' | "transcription";
+  export interface TranscriptionData {
+    text: string;
+    timestamp: number;
+    sessionId: string;
+  }
   
-  interface ErrorPayload {
+  export type WebSocketMessageType = 
+    | 'error' 
+    | 'command' 
+    | 'chunk' 
+    | 'ack' 
+    | 'status' 
+    | 'recording_complete'
+    | 'transcription';
+  
+  export interface ErrorPayload {
     message: string;
   }
   
-  interface CommandPayload {
-    action: string;
+  export interface CommandPayload {
+    action: 'start' | 'stop'; // Limited to 'start' or 'stop' for type safety
+    sessionId?: string;
   }
   
-  interface ChunkPayload {
+  export interface ChunkPayload {
     chunkId: number;
     sessionId: string;
   }
   
-  interface AckPayload {
+  export interface AckPayload {
     chunkId: number;
   }
   
-  interface StatusPayload {
-    status: string;
+  export interface StatusPayload {
+    status: SessionStatus; // Ensures status matches SessionStatus type
   }
   
-  interface RecordingCompletePayload {
+  export interface RecordingCompletePayload {
     sessionId: string;
   }
   
-  export type WebSocketPayload = {
+  export interface TranscriptionPayload extends TranscriptionData {}
+  
+  export interface WebSocketPayload {
     error: ErrorPayload;
     command: CommandPayload;
     chunk: ChunkPayload;
     ack: AckPayload;
     status: StatusPayload;
     recording_complete: RecordingCompletePayload;
-    transcription: { text: string; timestamp: number };
+    transcription: TranscriptionPayload;
   }
   
   export interface WebSocketMessage {
@@ -67,10 +85,8 @@ export interface AudioChunkMetadata {
     audioLevel: number;
     isConnected: boolean;
     sessionData: SessionMetadata | null;
-    transcriptionData: TranscriptionData | null; 
+    transcriptions: TranscriptionData[];
+    sessionActive: boolean;
+    sessionId: string | null;
   }
-
-  export interface TranscriptionData {
-    timestamp: number;
-    text: string;
-}
+  
