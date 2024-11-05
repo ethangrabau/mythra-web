@@ -1,0 +1,21 @@
+{
+  "sessionId": "session-1730766560389-z71e2dfus",
+  "startTime": 1730766560393,
+  "status": "completed",
+  "totalDuration": 6000,
+  "totalSize": 84783,
+  "lastChunkId": 5,
+  "checksums": [
+    "7abc8413c033e37d264c2c550667c0cb3b7d54f931727614975cf073b696d2cd",
+    "0bd2879b019fa23efffee7888cceaadc6b3a137edb04ab4ee145c707caf0be90",
+    "4bd7cc7e37865c6d6de47acccc746b48275cf2bc2abfe7fbe4018c3316496ec8",
+    "429376e6983277b51a03ce82cacc0e2ec6dfd3b33f9b533090f9ff9c86e4db01",
+    "4d196fd0ea6858e9b62b6edf0369b73d873910e65eebbb4cc01a603fac89750c",
+    "19258648d875f1f4e7593fea9f03f48631cff4fda279342f59eac9d70d7c7c8e"
+  ],
+  "transcription": {
+    "text": "This is a test. The man sat on a hat.",
+    "timestamp": 1730766567228,
+    "sessionId": "session-1730766560389-z71e2dfus"
+  }
+}

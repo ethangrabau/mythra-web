@@ -43,7 +43,7 @@ class AudioSession {
       totalSize: 0,
       lastChunkId: -1,
       checksums: new Set(),
-      transcription: null
+      transcription: null,
     };
     this.transcriptionService = new TranscriptionService();
   }
@@ -75,7 +75,7 @@ class AudioSession {
         path: chunkPath,
         timestamp: Date.now(),
         size: data.length,
-        checksum: calculatedChecksum
+        checksum: calculatedChecksum,
       });
 
       this.metadata.lastChunkId = chunkId;
@@ -107,7 +107,7 @@ class AudioSession {
       totalSize: this.metadata.totalSize,
       lastChunkId: this.metadata.lastChunkId,
       checksums: Array.from(this.metadata.checksums),
-      transcription: this.metadata.transcription
+      transcription: this.metadata.transcription,
     };
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
   }
@@ -115,7 +115,7 @@ class AudioSession {
   async transcribeRecording(outputPath) {
     try {
       console.log('Starting transcription for:', outputPath);
-      
+
       // Verify file exists
       try {
         await fs.access(outputPath);
@@ -128,21 +128,21 @@ class AudioSession {
       console.log('File stats:', {
         size: stats.size,
         path: outputPath,
-        exists: true
+        exists: true,
       });
 
       // Send status update to client
       this.sendStatus('Transcribing audio...');
 
       const result = await this.transcriptionService.transcribeFile(outputPath, this.sessionId);
-      
+
       // Send success status to client
       this.sendStatus('Transcription completed');
-      
+
       // Save transcription result
       const transcriptionPath = join(METADATA_DIR, `${this.sessionId}-transcription.json`);
       await fs.writeFile(transcriptionPath, JSON.stringify(result, null, 2));
-      
+
       // Update session metadata
       this.metadata.transcription = result;
       await this.saveMetadata();
@@ -152,7 +152,7 @@ class AudioSession {
       console.error('Transcription failed:', error);
       this.status = 'failed';
       await this.saveMetadata();
-      
+
       // Send error to client
       this.sendError(`Transcription failed: ${error.message}`);
       throw error;
@@ -191,7 +191,7 @@ class AudioSession {
       // Start transcription
       this.status = 'transcribing';
       await this.saveMetadata();
-      
+
       const transcription = await this.transcribeRecording(outputPath);
 
       this.status = 'completed';
@@ -199,7 +199,7 @@ class AudioSession {
 
       return {
         path: outputPath,
-        transcription
+        transcription,
       };
     } catch (error) {
       console.error('Error in finalize:', error);
@@ -211,23 +211,27 @@ class AudioSession {
 
   sendStatus(message) {
     if (this.socket) {
-      this.socket.send(JSON.stringify({
-        type: 'status',
-        payload: { message, status: this.status },
-        timestamp: Date.now(),
-        sessionId: this.sessionId
-      }));
+      this.socket.send(
+        JSON.stringify({
+          type: 'status',
+          payload: { message, status: this.status },
+          timestamp: Date.now(),
+          sessionId: this.sessionId,
+        })
+      );
     }
   }
 
   sendError(message) {
     if (this.socket) {
-      this.socket.send(JSON.stringify({
-        type: 'error',
-        payload: { message },
-        timestamp: Date.now(),
-        sessionId: this.sessionId
-      }));
+      this.socket.send(
+        JSON.stringify({
+          type: 'error',
+          payload: { message },
+          timestamp: Date.now(),
+          sessionId: this.sessionId,
+        })
+      );
     }
   }
 }
@@ -235,7 +239,7 @@ class AudioSession {
 const server = new WebSocketServer({ port: 8080 });
 console.log('WebSocket server running on ws://localhost:8080');
 
-server.on('connection', (socket) => {
+server.on('connection', socket => {
   console.log('=== New Client Connected ===');
   let currentSession = null;
 
@@ -251,16 +255,18 @@ server.on('connection', (socket) => {
         const chunkId = currentSession.metadata.lastChunkId + 1;
         await currentSession.addChunk(chunkId, data, {});
 
-        socket.send(JSON.stringify({
-          type: 'status',
-          payload: {
-            chunkId,
-            totalDuration: currentSession.metadata.totalDuration,
-            totalSize: currentSession.metadata.totalSize
-          },
-          sessionId: currentSession.sessionId,
-          timestamp: Date.now()
-        }));
+        socket.send(
+          JSON.stringify({
+            type: 'status',
+            payload: {
+              chunkId,
+              totalDuration: currentSession.metadata.totalDuration,
+              totalSize: currentSession.metadata.totalSize,
+            },
+            sessionId: currentSession.sessionId,
+            timestamp: Date.now(),
+          })
+        );
       } else {
         // Handle control messages
         const message = JSON.parse(data.toString());
@@ -284,12 +290,14 @@ server.on('connection', (socket) => {
               currentSession = new AudioSession(sessionId, socket);
               activeSessions.set(sessionId, currentSession);
 
-              socket.send(JSON.stringify({
-                type: 'status',
-                payload: { status: 'initialized' },
-                sessionId,
-                timestamp: Date.now()
-              }));
+              socket.send(
+                JSON.stringify({
+                  type: 'status',
+                  payload: { status: 'initialized' },
+                  sessionId,
+                  timestamp: Date.now(),
+                })
+              );
             } else if (message.payload.action === 'stop') {
               if (!currentSession) {
                 throw new Error('No active session to stop');
@@ -298,17 +306,19 @@ server.on('connection', (socket) => {
               console.log('Stopping session:', currentSession.sessionId);
               const result = await currentSession.finalize();
 
-              socket.send(JSON.stringify({
-                type: 'recording_complete',
-                payload: {
-                  path: result.path,
-                  duration: currentSession.metadata.totalDuration,
-                  size: currentSession.metadata.totalSize,
-                  transcription: result.transcription
-                },
-                sessionId: currentSession.sessionId,
-                timestamp: Date.now()
-              }));
+              socket.send(
+                JSON.stringify({
+                  type: 'recording_complete',
+                  payload: {
+                    path: result.path,
+                    duration: currentSession.metadata.totalDuration,
+                    size: currentSession.metadata.totalSize,
+                    transcription: result.transcription,
+                  },
+                  sessionId: currentSession.sessionId,
+                  timestamp: Date.now(),
+                })
+              );
 
               currentSession = null;
             }
@@ -324,11 +334,13 @@ server.on('connection', (socket) => {
       if (currentSession) {
         currentSession.sendError(error.message);
       } else {
-        socket.send(JSON.stringify({
-          type: 'error',
-          payload: { message: error.message },
-          timestamp: Date.now()
-        }));
+        socket.send(
+          JSON.stringify({
+            type: 'error',
+            payload: { message: error.message },
+            timestamp: Date.now(),
+          })
+        );
       }
     }
   });
@@ -345,13 +357,15 @@ server.on('connection', (socket) => {
     console.log('Client disconnected');
   });
 
-  socket.on('error', (error) => {
+  socket.on('error', error => {
     console.error('WebSocket error:', error);
-    socket.send(JSON.stringify({
-      type: 'error',
-      payload: { message: 'Internal server error' },
-      timestamp: Date.now()
-    }));
+    socket.send(
+      JSON.stringify({
+        type: 'error',
+        payload: { message: 'Internal server error' },
+        timestamp: Date.now(),
+      })
+    );
   });
 });
 
@@ -359,7 +373,7 @@ server.on('connection', (socket) => {
 setInterval(() => {
   const now = Date.now();
   const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-  
+
   activeSessions.forEach((session, sessionId) => {
     if (now - session.startTime > maxAge) {
       activeSessions.delete(sessionId);
