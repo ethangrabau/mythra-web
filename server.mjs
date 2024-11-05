@@ -4,6 +4,12 @@ import { dirname, join } from 'path';
 import fs from 'fs/promises';
 import { createWriteStream, mkdirSync } from 'fs';
 import crypto from 'crypto';
+import TranscriptionService from './src/lib/services/transcription.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const transcriptionService = new TranscriptionService(process.env.OPENAI_API_KEY);
 
 // Get the current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -40,10 +46,10 @@ class AudioSession {
       totalDuration: 0,
       totalSize: 0,
       lastChunkId: -1,
-      checksums: new Set()
+      checksums: new Set(),
+      transcription: null
     };
   }
-
 
   async addChunk(chunkId, data, metadata) {
     try {
@@ -103,9 +109,30 @@ class AudioSession {
       totalDuration: this.metadata.totalDuration,
       totalSize: this.metadata.totalSize,
       lastChunkId: this.metadata.lastChunkId,
-      checksums: Array.from(this.metadata.checksums)
+      checksums: Array.from(this.metadata.checksums),
+      transcription: this.metadata.transcription
     };
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+  }
+
+  async transcribeRecording(outputPath) {
+    try {
+      console.log('Starting transcription for:', outputPath);
+      const result = await transcriptionService.transcribeFile(outputPath, this.sessionId);
+      
+      // Save transcription to metadata
+      const transcriptionPath = join(METADATA_DIR, `${this.sessionId}-transcription.json`);
+      await fs.writeFile(transcriptionPath, JSON.stringify(result, null, 2));
+      
+      // Update session metadata
+      this.metadata.transcription = result;
+      await this.saveMetadata();
+
+      return result;
+    } catch (error) {
+      console.error('Transcription failed:', error);
+      throw error;
+    }
   }
 
   async finalize() {
@@ -137,10 +164,19 @@ class AudioSession {
         output.end();
       });
 
+      // Start transcription
+      this.status = 'transcribing';
+      await this.saveMetadata();
+      
+      const transcription = await this.transcribeRecording(outputPath);
+
       this.status = 'completed';
       await this.saveMetadata();
 
-      return outputPath;
+      return {
+        path: outputPath,
+        transcription
+      };
     } catch (error) {
       this.status = 'failed';
       await this.saveMetadata();
@@ -216,17 +252,27 @@ server.on('connection', (socket) => {
               if (!currentSession) {
                 throw new Error('No active session to stop');
               }
-              const outputPath = await currentSession.finalize();
+              
+              console.log('Stopping session:', currentSession.sessionId);
+              
+              const result = await currentSession.finalize();
+              console.log('Finalize result:', result);
+              
               sendStatus({
                 type: 'recording_complete',
+                payload: {
+                  sessionId: currentSession.sessionId,
+                  path: result.path,
+                  duration: currentSession.metadata.totalDuration,
+                  size: currentSession.metadata.totalSize,
+                  transcription: result.transcription
+                },
                 sessionId: currentSession.sessionId,
-                path: outputPath,
-                duration: currentSession.metadata.totalDuration,
-                size: currentSession.metadata.totalSize
+                timestamp: Date.now()
               });
+              
               currentSession = null;
             }
-            break;
         
           case 'metadata':
             if (!currentSession) {

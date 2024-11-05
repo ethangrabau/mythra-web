@@ -15,6 +15,7 @@ export interface AudioChunkMetadata {
     chunks: AudioChunkMetadata[];
     totalDuration: number;
     totalSize: number;
+    transcription?: TranscriptionData | null;
   }
   
   export type WebSocketMessageType = 'error' | 'command' | 'chunk' | 'ack' | 'status' | 'recording_complete';
@@ -36,12 +37,21 @@ export interface AudioChunkMetadata {
     chunkId: number;
   }
   
-  interface StatusPayload {
-    status: string;
+  export interface StatusPayload {
+    status: 'initializing' | 'recording' | 'processing' | 'completed' | 'failed';
+    sessionId: string;
+    duration?: number; // Make optional since not all status messages will have this
+    size?: number; // Make optional since not all status messages will have this
+    totalDuration?: number; // Add this for compatibility
+    totalSize?: number; // Add this for compatibility
   }
   
-  interface RecordingCompletePayload {
+  export interface RecordingCompletePayload {
     sessionId: string;
+    path: string; // Keep your existing fields
+    duration: number;
+    size: number;
+    transcription: TranscriptionData; // Add this field
   }
   
   export type WebSocketPayload = {
@@ -66,4 +76,11 @@ export interface AudioChunkMetadata {
     audioLevel: number;
     isConnected: boolean;
     sessionData: SessionMetadata | null;
+  }
+
+  // Add this interface for transcription data
+  export interface TranscriptionData {
+    text: string;
+    timestamp: number;
+    sessionId: string;
   }

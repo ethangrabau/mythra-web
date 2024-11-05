@@ -1,0 +1,22 @@
+{
+  "sessionId": "session-1730762644097-cpprgv4ty",
+  "startTime": 1730762644101,
+  "status": "completed",
+  "totalDuration": 7000,
+  "totalSize": 99298,
+  "lastChunkId": 6,
+  "checksums": [
+    "c080ddc6157761bd66897ca24820c06e7353d96653b827b520b039747e6b571b",
+    "2af2facab32c96f0a57df3f83e8404526e6c56852b62c9481a76e2dc03a4a5b5",
+    "b5e2ee4f5a137725aa436d237763bd29f94247c7030968e09f1005740bbf8f82",
+    "8f4916a5e24a35e6cd757f44b5f80c37f72f4dbc18a092babf6215a240e69db7",
+    "ed3884a9d5a57847312aabc0dd727ed066d320fbdc8ce4e443dc74e6c7ea7ca8",
+    "319cb62be1322ac5c295bd7e4d9e6d7d1ac589e845713ca21a2437345a2c8dd8",
+    "b9db190d60ddcc6b1a962d48dd6543b44ff1214bf232dc767d2d6221f15e2dc5"
+  ],
+  "transcription": {
+    "text": "Winnie the Pooh was a wonderful bear who liked to eat lots of honey.",
+    "timestamp": 1730762654893,
+    "sessionId": "session-1730762644097-cpprgv4ty"
+  }
+}
