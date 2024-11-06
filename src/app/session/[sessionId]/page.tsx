@@ -1,132 +1,87 @@
-//src/app/session/%5BsessionId%5D/page.tsx
 'use client';
 
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { PlayCircle, StopCircle, Images} from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
-import { useEffect, useState } from 'react';
-import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
-import { Button } from '@/components/ui/button';
-import { Mic, MicOff, X, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 
 export default function SessionPage() {
   const router = useRouter();
-  const params = useParams();
-  const sessionId = params.sessionId as string;
-  const [isInitializing, setIsInitializing] = useState(true);
-
-  const { 
-    isRecording, 
-    startRecording, 
+  const {
+    isRecording,
+    startRecording,
     stopRecording,
-    endSession,
-    error,
     isConnected,
-    sessionActive,
-    startSession,
-    transcriptions,  // Add this
+    error: hookError,
   } = useAudioRecorder();
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const initSession = async () => {
-      if (!sessionActive && !isRecording) {
-        try {
-          if (!isConnected) {
-            console.log('Waiting for connection...');
-            return;
-          }
-          
-          // Use the sessionId from the URL
-          await startSession(sessionId);
-          setIsInitializing(false);
-        } catch (err) {
-          console.error('Failed to initialize session:', err);
-          router.push('/');
-        }
-      } else {
-        setIsInitializing(false);
-      }
-    };
-  
-    initSession();
-  }, [sessionActive, isRecording, isConnected, startSession, router, sessionId]);
-
-  const handleEndSession = async () => {
-    if (isRecording) {
-      await stopRecording();
+  const handleStartRecording = async () => {
+    try {
+      setError(null);
+      await startRecording();
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-    await endSession();
-    router.push('/');
   };
 
-  if (isInitializing) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          <p className="text-gray-600">Initializing session...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleStopRecording = () => {
+    try {
+      stopRecording();
+    } catch (err) {
+      console.error('Error stopping recording:', err);
+      setError(err instanceof Error ? err.message : 'Failed to stop recording');
+    }
+  };
 
   return (
     <main className="flex-1 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Session: {sessionId}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {isRecording ? 'Recording in progress' : 'Session in progress'}
-            </p>
-          </div>
-
-          {/* Recording Controls */}
-          <div className="flex items-center gap-4">
-            <Button
-              variant={isRecording ? "destructive" : "default"}
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={!isConnected}
-              icon={isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            >
-              {isRecording ? 'Stop Recording' : 'Start Recording'}
-            </Button>
-
-            <Button
-              variant="danger"
-              onClick={handleEndSession}
-              icon={<X className="w-4 h-4" />}
-            >
-              End Session
-            </Button>
-          </div>
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Session Recording</h2>
+          <p className="text-gray-600 mt-2">Control and manage your D&D session recordings.</p>
         </div>
 
-        {/* Error Messages */}
-        {error && (
+        {(error || hookError) && (
           <div className="rounded-lg bg-red-50 p-4 text-red-700 text-sm">
-            {error}
+            {error || hookError}
           </div>
         )}
 
-        {/* Connection Status */}
-        {!isConnected && (
-          <div className="rounded-lg bg-yellow-50 p-4 text-yellow-700 text-sm flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Connecting to server...
-          </div>
-        )}
+        <div className="space-y-4">
+          {!isRecording ? (
+            <button
+              onClick={handleStartRecording}
+              disabled={!isConnected}
+              className="p-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all"
+            >
+              <PlayCircle className="w-6 h-6 inline-block" />
+              Start Recording
+            </button>
+          ) : (
+            <button
+              onClick={handleStopRecording}
+              className="p-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all"
+            >
+              <StopCircle className="w-6 h-6 inline-block" />
+              Stop Recording
+            </button>
+          )}
+        </div>
 
-        {/* Transcription Viewer */}
-        {/* Transcription Viewer */}
-        <TranscriptionViewer
-        transcriptions={transcriptions}  // Now using the state we created
-        isRecording={isRecording}
-        sessionActive={sessionActive}
-        sessionId={sessionId}
-        />
+        <div>
+          <button
+            onClick={() => router.push('/recaps')}
+            className="p-8 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] text-left group"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <Images className="w-6 h-6 text-purple-600 group-hover:scale-110 transition-transform" />
+              <h3 className="text-lg font-semibold text-gray-800">View Recaps</h3>
+            </div>
+            <p className="text-sm text-gray-600">Browse through past session recaps and generated imagery.</p>
+          </button>
+        </div>
       </div>
     </main>
   );
