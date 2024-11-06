@@ -101,26 +101,3 @@ const TranscriptionViewer = ({
 };
 
 export default TranscriptionViewer;
-
-      {/* Content */}
-      <div 
-        ref={viewerRef}
-        className="max-h-[500px] overflow-y-auto p-4 space-y-4"
-      >
-        <div className="flex gap-3 group">
-          <div className="flex-shrink-0 text-sm text-gray-500">
-            <Clock className="w-4 h-4" />
-          </div>
-          <div className="flex-1">
-            <div className="text-xs text-gray-500 mb-1">
-              {formatTimestamp(transcription.timestamp)}
-            </div>
-            <p className="text-gray-800 whitespace-pre-wrap">
-              {transcription.text}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
