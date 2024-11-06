@@ -1,14 +1,17 @@
 // src/components/layout/Footer.tsx
 'use client';
+import { usePathname } from 'next/navigation';
 import { Wifi, WifiOff, Mic} from 'lucide-react';
+import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 
-interface FooterProps {
-  isConnected?: boolean;
-  sessionStatus?: string;
-  recordingDuration?: number;
-}
+export default function Footer() {
+  const pathname = usePathname();
+  const { 
+    isConnected,
+    isRecording,
+    sessionData
+  } = useAudioRecorder();
 
-export default function Footer({ isConnected, sessionStatus, recordingDuration }: FooterProps) {
   const formatDuration = (ms: number) => {
     if (!ms) return '00:00';
     const seconds = Math.floor(ms / 1000);
@@ -16,6 +19,9 @@ export default function Footer({ isConnected, sessionStatus, recordingDuration }
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  // Only show session info on session page
+  const showSessionInfo = pathname === '/session';
 
   return (
     <footer className="border-t bg-white/50 backdrop-blur-sm">
@@ -36,15 +42,23 @@ export default function Footer({ isConnected, sessionStatus, recordingDuration }
             )}
           </div>
 
-          {/* Recording Status */}
-          {sessionStatus && (
+          {/* Recording Status - Only show on session page */}
+          {showSessionInfo && sessionData?.status && (
             <div className="flex items-center gap-2 text-sm">
               <div className="w-px h-4 bg-gray-300" /> {/* Divider */}
-              <Mic className={`w-4 h-4 ${sessionStatus === 'recording' ? 'text-red-500 animate-pulse' : 'text-gray-500'}`} />
-              <span className="capitalize text-gray-600">{sessionStatus}</span>
-              {recordingDuration && sessionStatus === 'recording' && (
-                <span className="text-gray-600">{formatDuration(recordingDuration)}</span>
+              <Mic className={`w-4 h-4 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-500'}`} />
+              <span className="capitalize text-gray-600">{sessionData.status}</span>
+              {isRecording && sessionData.totalDuration > 0 && (
+                <span className="text-gray-600">{formatDuration(sessionData.totalDuration)}</span>
               )}
+            </div>
+          )}
+
+          {/* Show session ID if available */}
+          {showSessionInfo && sessionData?.sessionId && (
+            <div className="flex items-center gap-2 text-sm">
+              <div className="w-px h-4 bg-gray-300" /> {/* Divider */}
+              <span className="text-gray-600">Session: {sessionData.sessionId}</span>
             </div>
           )}
         </div>

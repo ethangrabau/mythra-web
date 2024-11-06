@@ -17,6 +17,7 @@ export interface SessionMetadata {
   chunks: AudioChunkMetadata[];
   totalDuration: number;
   totalSize: number;
+  transcription?: TranscriptionData | null; 
 }
 
 export interface TranscriptionData {
@@ -54,6 +55,7 @@ export interface AckPayload {
 
 export interface StatusPayload {
   status: SessionStatus; // Ensures status matches SessionStatus type
+  sessionId?: string; // Add sessionId as an optional field
 }
 
 export interface RecordingCompletePayload {
@@ -64,7 +66,10 @@ export interface RecordingCompletePayload {
   transcription: TranscriptionData; // Add this field
 }
 
-export interface TranscriptionPayload extends TranscriptionData {}
+export interface TranscriptionPayload extends TranscriptionData {
+  // Any additional properties specific to the payload
+  id?: string;  // for example
+}
 
 export interface WebSocketPayload {
   error: ErrorPayload;
@@ -74,11 +79,12 @@ export interface WebSocketPayload {
   status: StatusPayload;
   recording_complete: RecordingCompletePayload;
   transcription: TranscriptionPayload;
+  sessionId?: string; // Add sessionId as an optional field
 }
 
 export interface WebSocketMessage {
-  type: WebSocketMessageType;
-  payload: WebSocketPayload[WebSocketMessageType];
+  type: 'command' | 'chunk' | 'status' | 'error' | 'recording_complete' | 'ack' | 'transcription';
+  payload: WebSocketPayload[WebSocketMessage['type']];  // This makes payload type match the message type
   sessionId: string;
   timestamp: number;
 }
@@ -89,7 +95,7 @@ export interface AudioRecorderState {
   audioLevel: number;
   isConnected: boolean;
   sessionData: SessionMetadata | null;
-  transcriptions: TranscriptionData[];
-  sessionActive: boolean;
-  sessionId: string | null;
+  transcriptionData: TranscriptionData | null;  // Add this line
+  startRecording: () => Promise<void>;
+  stopRecording: () => void;
 }

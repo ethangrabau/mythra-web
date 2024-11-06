@@ -1,103 +1,138 @@
+// TranscriptionViewer.tsx
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import { Clock, Mic } from 'lucide-react';
-import Card from '@/components/ui/card';
+import React, { useEffect, useState, useRef } from 'react';
+import { Clock } from 'lucide-react';
+import { Card } from "@/components/ui/card";
 import type { TranscriptionData } from '@/lib/types/audio';
 
 interface TranscriptionViewerProps {
-  transcriptions: TranscriptionData[];
+  sessionId: string;
   isRecording: boolean;
   sessionActive: boolean;
-  sessionId?: string;
 }
 
-const TranscriptionViewer = ({
-  transcriptions,
-  isRecording,
-  sessionActive,
-  sessionId
-}: TranscriptionViewerProps) => {
+export default function TranscriptionViewer({ 
+  sessionId,
+  isRecording, 
+  sessionActive 
+}: TranscriptionViewerProps) {
+  const [transcriptions, setTranscriptions] = useState<TranscriptionData[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
-  // Auto-scroll to bottom when new content arrives
+  // Set up WebSocket connection for real-time updates
   useEffect(() => {
-    if (viewerRef.current && isRecording) {
-      viewerRef.current.scrollTop = viewerRef.current.scrollHeight;
+    if (!sessionId || !sessionActive) return;
+
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/transcription`);
+    wsRef.current = ws;
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'transcription' && data.sessionId === sessionId) {
+        setTranscriptions(prev => [...prev, data.payload]);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setError('Failed to connect to transcription service');
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [sessionId, sessionActive]);
+
+  // Initial fetch of existing transcriptions
+  useEffect(() => {
+    const fetchTranscriptions = async () => {
+      if (!sessionId) {
+        setError('No session ID provided');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/transcription/${sessionId}`);
+        if (!response.ok) throw new Error('Failed to fetch transcriptions');
+        
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setTranscriptions(data);
+        }
+      } catch (err) {
+        console.error('Error fetching transcriptions:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch transcriptions');
+      }
+    };
+
+    fetchTranscriptions();
+  }, [sessionId]);
+
+  // Auto-scroll to latest transcription
+  useEffect(() => {
+    if (viewerRef.current && isRecording && sessionActive) {
+      viewerRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [transcriptions, isRecording]);
+  }, [transcriptions, isRecording, sessionActive]);
 
   const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { 
+    return new Date(timestamp).toLocaleTimeString([], { 
       hour: '2-digit', 
       minute: '2-digit',
-      second: '2-digit' 
+      second: '2-digit',
+      hour12: false 
     });
   };
 
-  if (!sessionActive) {
+  if (error) {
     return (
-      <Card className="min-h-[400px] flex items-center justify-center text-gray-500">
-        <p>Start a new session to begin recording</p>
+      <Card>
+        <div className="rounded-lg bg-gray-50 p-8 text-center text-red-500">
+          {error}
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className="min-h-[400px] flex flex-col">
-      {/* Header */}
+    <Card>
       <div className="border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="font-medium text-gray-900">Session Transcript</h3>
-          {sessionId && (
-            <span className="text-xs text-gray-500">({sessionId})</span>
+        <h3 className="font-medium text-gray-900">Session Transcription</h3>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-500">Session: {sessionId}</span>
+          {isRecording && (
+            <div className="flex items-center gap-2 text-sm text-red-600">
+              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              Recording
+            </div>
           )}
         </div>
-        {isRecording && (
-          <div className="flex items-center gap-2 text-sm text-red-600">
-            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-            Recording
-          </div>
-        )}
       </div>
 
-      {/* Content */}
-      <div 
-        ref={viewerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
-      >
-        {(!transcriptions || transcriptions.length === 0) ? (
-          <div className="h-full flex items-center justify-center text-gray-500">
-            {isRecording ? (
-              <div className="flex items-center gap-2">
-                <Mic className="w-4 h-4 animate-pulse" />
-                <p>Listening...</p>
-              </div>
-            ) : (
-              <p>No transcriptions yet</p>
-            )}
-          </div>
-        ) : (
-          transcriptions.map((transcription, index) => (
-            <div key={index} className="flex gap-3 group">
-              <div className="flex-shrink-0 text-sm text-gray-500">
+      <div className="max-h-[500px] overflow-y-auto">
+        <div className="p-4 space-y-4">
+          {transcriptions.map((transcription, index) => (
+            <div 
+              key={`${transcription.timestamp}-${index}`}
+              className="flex gap-3 group hover:bg-gray-50 p-2 rounded-lg"
+            >
+              <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Clock className="w-4 h-4" />
+                <span>{formatTimestamp(transcription.timestamp)}</span>
               </div>
-              <div className="flex-1">
-                <div className="text-xs text-gray-500 mb-1">
-                  {formatTimestamp(transcription.timestamp)}
-                </div>
-                <p className="text-gray-800 whitespace-pre-wrap">
-                  {transcription.text}
-                </p>
-              </div>
+              <p className="flex-1 text-gray-800 whitespace-pre-wrap">
+                {transcription.text}
+              </p>
             </div>
-          ))
-        )}
+          ))}
+          <div ref={viewerRef} />
+        </div>
       </div>
     </Card>
   );
-};
-
-export default TranscriptionViewer;
+}
