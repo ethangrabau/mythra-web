@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+#audio/metadata
+/audio-chunks/
+/metadata/
+
 # production
 /build
 
@@ -34,6 +38,7 @@ yarn-error.log*
 
 # vercel
 .vercel
+.webm
 
 # typescript
 *.tsbuildinfo
