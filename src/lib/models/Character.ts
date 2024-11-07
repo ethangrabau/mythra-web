@@ -36,3 +36,68 @@ interface ICharacter extends Document {
   }[];
   notes: string;
 }
+
+//Schema
+const CharacterSchema = new Schema<ICharacter>(
+  {
+    playerId: { type: Schema.Types.ObjectId, required: true, ref: 'Player' },
+    name: { type: String, required: true },
+    class: [
+      {
+        name: {
+          type: String,
+          required: true,
+          enum: [
+            'Barbarian',
+            'Bard',
+            'Cleric',
+            'Druid',
+            'Fighter',
+            'Monk',
+            'Paladin',
+            'Ranger',
+            'Rogue',
+            'Sorcerer',
+            'Warlock',
+            'Wizard',
+          ],
+        },
+        level: { type: Number, required: true, min: 1, max: 20 },
+        subclass: String,
+      },
+    ],
+    race: { type: String, required: true },
+    subrace: String,
+    background: { type: String, required: true },
+    alignment: {
+      type: String,
+      required: true,
+      enum: ['LG', 'NG', 'CG', 'LN', 'N', 'CN', 'LE', 'NE', 'CE'],
+    },
+    experience: { type: Number, default: 0 },
+    stats: {
+      strength: { type: Number, required: true, min: 1, max: 30 },
+      dexterity: { type: Number, required: true, min: 1, max: 30 },
+      constitution: { type: Number, required: true, min: 1, max: 30 },
+      intelligence: { type: Number, required: true, min: 1, max: 30 },
+      wisdom: { type: Number, required: true, min: 1, max: 30 },
+      charisma: { type: Number, required: true, min: 1, max: 30 },
+    },
+    currentCampaignId: { type: Schema.Types.ObjectId, ref: 'Campaign' },
+    isAlive: { type: Boolean, default: true },
+    personalityTraits: [String],
+    bonds: [String],
+    ideals: [String],
+    flaws: [String],
+    inventory: [
+      {
+        item: String,
+        quantity: { type: Number, default: 1 },
+        equipped: { type: Boolean, default: false },
+        attuned: { type: Boolean, default: false },
+      },
+    ],
+    notes: String,
+  },
+  { timestamps: true }
+);
