@@ -15,17 +15,16 @@ interface TranscriptionViewerProps {
 export default function TranscriptionViewer({ 
   sessionId,
   isRecording, 
-  sessionActive,
   transcriptions 
 }: TranscriptionViewerProps) {
   const viewerRef = useRef<HTMLDivElement>(null);
 
   // Scroll to the latest transcription when updated
   useEffect(() => {
-    if (viewerRef.current && isRecording && sessionActive) {
+    if (viewerRef.current) {
       viewerRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [transcriptions, isRecording, sessionActive]);
+  }, [transcriptions]);
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);

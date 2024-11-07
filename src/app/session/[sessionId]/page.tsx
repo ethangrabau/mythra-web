@@ -1,9 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { PlayCircle, StopCircle, Images} from 'lucide-react';
+import { PlayCircle, StopCircle, Images } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 import { useState } from 'react';
+import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 
 export default function SessionPage() {
   const router = useRouter();
@@ -11,6 +12,8 @@ export default function SessionPage() {
     isRecording,
     startRecording,
     stopRecording,
+    sessionData,
+    transcriptions,
     isConnected,
     error: hookError,
   } = useAudioRecorder();
@@ -69,6 +72,13 @@ export default function SessionPage() {
             </button>
           )}
         </div>
+
+        <TranscriptionViewer
+          sessionId={sessionData?.sessionId || ''}
+          isRecording={isRecording}
+          sessionActive={!!sessionData}
+          transcriptions={transcriptions}
+        />
 
         <div>
           <button
