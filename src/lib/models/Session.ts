@@ -1,7 +1,7 @@
-import mongoose, { Document, ObjectId, Schema } from 'mongoose';
+import mongoose, { Document, Types, Schema } from 'mongoose';
 
 export interface ISession extends Document {
-  campaignId: ObjectId;
+  campaignId: Types.ObjectId;
   sessionNumber: number;
   date: Date;
   location: {
@@ -49,3 +49,77 @@ export interface ISession extends Document {
     present: boolean;
   }[];
 }
+
+// Schemas
+const SessionSchema = new Schema<ISession>(
+  {
+    campaignId: { type: Schema.Types.ObjectId, required: true, ref: 'Campaign' },
+    sessionNumber: { type: Number, required: true },
+    date: { type: Date, required: true },
+    location: {
+      name: String,
+      isVirtual: Boolean,
+      platform: String,
+    },
+    summary: String,
+    combatEncounters: [
+      {
+        name: String,
+        difficulty: {
+          type: String,
+          enum: ['easy', 'medium', 'hard', 'deadly'],
+        },
+        outcome: String,
+      },
+    ],
+    questProgress: [
+      {
+        questName: String,
+        status: {
+          type: String,
+          enum: ['started', 'advanced', 'completed', 'failed'],
+        },
+        notes: String,
+      },
+    ],
+    npcsIntroduced: [
+      {
+        name: String,
+        description: String,
+        location: String,
+        isAlive: { type: Boolean, default: true },
+      },
+    ],
+    lootAwarded: [
+      {
+        item: String,
+        quantity: Number,
+        recipient: String,
+        value: Number,
+      },
+    ],
+    importantLocations: [String],
+    playerCharacterUpdates: [
+      {
+        characterName: String,
+        levelUp: Boolean,
+        significantItems: [String],
+        notes: String,
+      },
+    ],
+    notes: {
+      private: String,
+      public: String,
+    },
+    attendance: [
+      {
+        playerName: String,
+        characterName: String,
+        present: Boolean,
+      },
+    ],
+  },
+  { timestamps: true }
+); // This adds createdAt and updatedAt automatically
+
+export const Session = mongoose.model<ISession>('Session', SessionSchema);
