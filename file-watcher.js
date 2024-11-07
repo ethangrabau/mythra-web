@@ -1,21 +1,27 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import OpenAI from "openai"; // Import OpenAI SDK
+import { generateLLMPrompt } from './src/lib/services/llmPrompt.js'; // Import the prompt generator
 
 // Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Transcription file path (Replace sessionId with your current one)
-const sessionId = 'session-1730946316630'; // Update this as needed
-const transcriptionFilePath = path.join(__dirname, 'metadata', `${sessionId}-transcription.json`);
+// OpenAI setup
+const openai = new OpenAI(); // Uses OPENAI_API_KEY from environment variables
 
-// Memory file path
+// File paths
+const sessionId = 'session-1730992152779';
+const transcriptionFilePath = path.join(__dirname, 'metadata', `${sessionId}-transcription.json`);
 const memoryFilePath = path.join(__dirname, 'metadata', 'memory.json');
 
 // Memory structure
 let memory = {
-  recentActivity: "", // Running buffer of recent transcriptions
+  recentActivity: '',
+  characters: [],
+  locations: [],
+  items: [],
 };
 
 // Load existing memory or initialize a new one
@@ -24,84 +30,128 @@ const loadMemory = () => {
     if (fs.existsSync(memoryFilePath)) {
       const data = fs.readFileSync(memoryFilePath, 'utf-8');
       memory = JSON.parse(data);
-      console.log('Memory loaded:', memory);
-    } else {
-      console.log('No existing memory file. Initializing new memory.');
     }
   } catch (err) {
-    console.error('Error loading memory:', err);
+    console.error('Error loading memory file:', err);
   }
 };
 
-// Save memory to file
+// Save updated memory to the file
 const saveMemory = () => {
   try {
     fs.writeFileSync(memoryFilePath, JSON.stringify(memory, null, 2));
     console.log('Memory saved to file.');
   } catch (err) {
-    console.error('Error saving memory:', err);
+    console.error('Error saving memory file:', err);
   }
 };
 
-// Update memory with new transcription text
-const updateMemory = (newText) => {
-  console.log('Updating memory with new text:', newText);
-
-  // Append new text to recentActivity
-  memory.recentActivity += ` ${newText}`.trim();
-
-  // Trim recentActivity to a maximum character limit (e.g., 1000 characters)
-  const maxChars = 1000;
-  if (memory.recentActivity.length > maxChars) {
-    memory.recentActivity = memory.recentActivity.slice(-maxChars);
-  }
-
-  // Save updated memory to file
-  saveMemory();
-};
+// Function to call the LLM
+const callLLM = async (recentActivity, currentMemory) => {
+    try {
+      console.log('Calling LLM for memory updates...');
+      const prompt = generateLLMPrompt(recentActivity, currentMemory);
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: prompt }],
+      });
+  
+      let rawResponse = response.choices[0].message.content;
+      console.log('Raw LLM Response:', rawResponse);
+  
+      // Sanitize the response to remove Markdown-style formatting
+      if (rawResponse.startsWith('```json')) {
+        rawResponse = rawResponse.replace(/```json|```/g, '').trim();
+      }
+  
+      const result = JSON.parse(rawResponse);
+      console.log('Parsed LLM Response:', result);
+      return result;
+    } catch (error) {
+      console.error('Error calling LLM:', error);
+      return null; // Return null to prevent breaking the flow
+    }
+  };
+  
 
 // Function to process new transcription
-const processNewTranscription = (newText) => {
-  console.log(`Processing new transcription: ${newText}`);
-  updateMemory(newText); // Pass new transcription to memory update
+const processNewTranscription = async (newText) => {
+    console.log(`Processing new transcription: ${newText}`);
+  
+    // Only add unique, new text to the recentActivity buffer
+    const currentActivity = memory.recentActivity.trim();
+    const newContent = newText.replace(currentActivity, '').trim();
+  
+    if (newContent) {
+      memory.recentActivity += ` ${newContent}`.trim();
+      console.log(`Updated recent activity buffer: ${memory.recentActivity}`);
+    } else {
+      console.log('No new unique content to append to recent activity.');
+      return; // Skip LLM call if there's no new content
+    }
+  
+    // Call LLM function to generate memory updates
+    const memoryUpdates = await callLLM(memory.recentActivity, memory);
+  
+    if (memoryUpdates) {
+      // Ensure fields are initialized
+      if (!memory.characters) memory.characters = [];
+      if (!memory.locations) memory.locations = [];
+      if (!memory.items) memory.items = [];
+  
+      // Prevent duplicate entries by using sets or filtering
+      const deduplicate = (arr, key) => {
+        const seen = new Set();
+        return arr.filter((item) => {
+          const val = item[key];
+          if (seen.has(val)) return false;
+          seen.add(val);
+          return true;
+        });
+      };
+  
+      memory.characters.push(...memoryUpdates.characters);
+      memory.characters = deduplicate(memory.characters, 'name');
+  
+      memory.locations.push(...memoryUpdates.locations);
+      memory.locations = deduplicate(memory.locations, 'name');
+  
+      memory.items.push(...memoryUpdates.items);
+      memory.items = deduplicate(memory.items, 'name');
+  
+      console.log('Memory updated:', memory);
+    } else {
+      console.warn('No updates generated by LLM.');
+    }
+  
+    saveMemory();
+  };
+  
+
+// Function to check for updates
+const checkForUpdates = () => {
+  fs.readFile(transcriptionFilePath, 'utf-8', (err, data) => {
+    if (err) {
+      console.error('Error reading transcription file:', err);
+      return;
+    }
+
+    try {
+      const transcription = JSON.parse(data);
+      const newText = transcription.text;
+
+      if (newText && newText !== memory.recentActivity.trim()) {
+        processNewTranscription(newText);
+      } else {
+        console.log('No new transcription to process.');
+      }
+    } catch (err) {
+      console.error('Error parsing transcription file:', err);
+    }
+  });
 };
 
-// Initialize memory at startup
+// Load memory and start monitoring transcription file
 loadMemory();
-
-// File watcher to check for transcription updates
-let lastProcessedLength = 0; // Store previously processed transcription
-
-const checkForUpdates = () => {
-    fs.readFile(transcriptionFilePath, 'utf-8', (err, data) => {
-      if (err) {
-        console.error('Error reading transcription file:', err);
-        return;
-      }
-  
-      try {
-        const transcriptionData = JSON.parse(data);
-        const fullText = transcriptionData.text.trim(); // Full transcription text
-        const newLength = fullText.length;
-  
-        // Check if there is new text to process
-        if (newLength > lastProcessedLength) {
-          const newText = fullText.slice(lastProcessedLength); // Extract the new portion
-          console.log('File updated, reading new content...');
-          console.log(`New transcription detected: ${newText}`);
-  
-          lastProcessedLength = newLength; // Update the last processed length
-          processNewTranscription(newText); // Process only the new portion
-        } else {
-          console.log('No new transcription to process.');
-        }
-      } catch (parseError) {
-        console.error('Error parsing transcription file:', parseError);
-      }
-    });
-  };
-
-// Poll the file for updates every 30 seconds
-setInterval(checkForUpdates, 10000);
-
 console.log(`Monitoring transcription file: ${transcriptionFilePath}`);
+setInterval(checkForUpdates, 10000); // Check every 30 seconds
