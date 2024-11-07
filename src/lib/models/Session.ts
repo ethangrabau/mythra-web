@@ -29,12 +29,12 @@ export interface ISession extends Document {
   lootAwarded: {
     item: string;
     quantity: number;
-    recipient: string; // Character name or "party"
+    characterId: Types.ObjectId; // The character who received the loot
     value?: number; // In gold pieces
   }[];
   importantLocations: string[];
-  playerCharacterUpdates: {
-    characterName: string;
+  characterUpdates: {
+    characterId: Types.ObjectId;
     levelUp: boolean;
     significantItems: string[];
     notes: string;
@@ -44,8 +44,8 @@ export interface ISession extends Document {
     public: string; // Notes shared with players
   };
   attendance: {
-    playerName: string;
-    characterName: string;
+    playerId: Types.ObjectId;
+    characterId: Types.ObjectId;
     present: boolean;
   }[];
 }
@@ -94,14 +94,14 @@ const SessionSchema = new Schema<ISession>(
       {
         item: String,
         quantity: Number,
-        recipient: String,
+        characterId: { type: Schema.Types.ObjectId, ref: 'Character' },
         value: Number,
       },
     ],
     importantLocations: [String],
-    playerCharacterUpdates: [
+    characterUpdates: [
       {
-        characterName: String,
+        characterId: { type: Schema.Types.ObjectId, ref: 'Character' },
         levelUp: Boolean,
         significantItems: [String],
         notes: String,
@@ -113,8 +113,8 @@ const SessionSchema = new Schema<ISession>(
     },
     attendance: [
       {
-        playerName: String,
-        characterName: String,
+        playerId: { type: Schema.Types.ObjectId, ref: 'Player' },
+        characterId: { type: Schema.Types.ObjectId, ref: 'Character' },
         present: Boolean,
       },
     ],
