@@ -13,6 +13,7 @@ export default class TranscriptionService {
     }
   }
 
+  // Transcribe a full audio file
   async transcribeFile(filePath, sessionId) {
     try {
       console.log('TranscriptionService: Starting transcription for file:', filePath);
@@ -67,6 +68,54 @@ export default class TranscriptionService {
       throw error;
     }
   }
+
+  // Transcribe a single audio chunk
+  async transcribeChunk(chunkPath, sessionId) {
+    try {
+      console.log(`Sending chunk for transcription: Path=${chunkPath}, Session=${sessionId}`);
+  
+      const form = new FormData();
+      const chunkBuffer = fs.readFileSync(chunkPath);
+  
+      // Append the audio chunk and other parameters
+      form.append('file', chunkBuffer, {
+        filename: `chunk-${sessionId}.webm`,
+        contentType: 'audio/webm',
+      });
+      form.append('model', 'whisper-1');
+      form.append('language', 'en');
+  
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          ...form.getHeaders(),
+        },
+        body: form,
+      });
+  
+      console.log(`Chunk transcription response: ${response.status}`);
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Transcription failed: ${errorText}`);
+        return null;
+      }
+  
+      const result = await response.json();
+      console.log('Chunk transcription result:', result);
+  
+      return {
+        text: result.text,
+        timestamp: Date.now(),
+        sessionId,
+      };
+    } catch (error) {
+      console.error('Error during chunk transcription:', error);
+      return null;
+    }
+  }
+  
 
   // Helper method to validate audio file
   async validateAudioFile(filePath) {

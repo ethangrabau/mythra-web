@@ -46,52 +46,87 @@ class AudioSession {
       transcription: null
     };
     this.transcriptionService = new TranscriptionService();
+    // Initialize transcription queue
+    this.transcriptionQueue = Promise.resolve();
   }
 
-  async addChunk(chunkId, data, metadata) {
+  async addChunk(chunkId, data) {
     try {
-      // Verify chunk order
-      if (chunkId !== this.metadata.lastChunkId + 1) {
-        throw new Error(`Invalid chunk order. Expected ${this.metadata.lastChunkId + 1}, got ${chunkId}`);
-      }
-
-      // Calculate and verify checksum
-      const calculatedChecksum = await this.calculateChecksum(data);
-      if (metadata.checksum && calculatedChecksum !== metadata.checksum) {
-        throw new Error('Checksum verification failed');
-      }
-
-      // Prevent duplicate chunks
-      if (this.metadata.checksums.has(calculatedChecksum)) {
-        throw new Error('Duplicate chunk detected');
-      }
-
-      // Save chunk
+      console.log(`Chunk received: ID=${chunkId}, Size=${data.length}, Session=${this.sessionId}`);
+  
+      // Save the chunk to disk
       const chunkPath = join(AUDIO_DIR, this.sessionId, `chunk-${chunkId}.webm`);
       await fs.writeFile(chunkPath, data);
-
+  
+      console.log(`Chunk saved. Adding chunk ${chunkId} to batch queue.`);
+  
+      // Add the chunk to the batch queue
+      this.chunks.set(chunkId, { path: chunkPath, timestamp: Date.now(), size: data.length });
+  
+      // Batch chunks for transcription
+      if (chunkId % 5 === 0 || chunkId === this.metadata.lastChunkId) { // Every 5 chunks or last chunk
+        console.log(`Batching chunks for transcription: ${chunkId - 4} to ${chunkId}`);
+  
+        // Concatenate chunks
+        const batchPath = join(AUDIO_DIR, this.sessionId, `batch-${chunkId}.webm`);
+        const output = createWriteStream(batchPath);
+  
+        for (let i = chunkId - 4; i <= chunkId; i++) {
+          if (this.chunks.has(i)) {
+            const chunkData = await fs.readFile(this.chunks.get(i).path);
+            output.write(chunkData);
+          }
+        }
+  
+        await new Promise((resolve, reject) => {
+          output.on('finish', resolve);
+          output.on('error', reject);
+          output.end();
+        });
+  
+        console.log(`Batch ${chunkId} saved at ${batchPath}. Adding to transcription queue.`);
+  
+        // Add the batch file to the transcription queue
+        this.transcriptionQueue = this.transcriptionQueue
+          .then(async () => {
+            const transcriptionResult = await this.transcriptionService.transcribeChunk(batchPath, this.sessionId);
+  
+            if (transcriptionResult) {
+              console.log(`Transcription completed for batch ${chunkId}:`, transcriptionResult);
+  
+              // Send transcription to the client
+              if (this.socket) {
+                this.socket.send(
+                  JSON.stringify({
+                    type: 'transcription',
+                    payload: {
+                      transcription: transcriptionResult,
+                      batchId: chunkId,
+                    },
+                    sessionId: this.sessionId,
+                    timestamp: Date.now(),
+                  })
+                );
+              }
+            }
+          })
+          .catch((error) => {
+            console.error(`Error transcribing batch ${chunkId}:`, error);
+          });
+      }
+  
       // Update metadata
-      this.chunks.set(chunkId, {
-        path: chunkPath,
-        timestamp: Date.now(),
-        size: data.length,
-        checksum: calculatedChecksum
-      });
-
       this.metadata.lastChunkId = chunkId;
-      this.metadata.checksums.add(calculatedChecksum);
       this.metadata.totalSize += data.length;
-      this.metadata.totalDuration += 1000; // 1-second chunks
-
-      // Save session metadata
+      this.metadata.totalDuration += 1000; // Assume 1-second chunks
       await this.saveMetadata();
-
-      return true;
     } catch (error) {
       console.error(`Error processing chunk ${chunkId}:`, error);
       throw error;
     }
   }
+  
+  
 
   async calculateChecksum(data) {
     return crypto.createHash('sha256').update(Buffer.from(data)).digest('hex');
@@ -163,47 +198,52 @@ class AudioSession {
     try {
       this.status = 'processing';
       await this.saveMetadata();
-
+  
       // Verify all chunks are present
       const expectedChunks = Array.from({ length: this.metadata.lastChunkId + 1 }, (_, i) => i);
       const missingChunks = expectedChunks.filter(id => !this.chunks.has(id));
-
+  
       if (missingChunks.length > 0) {
         throw new Error(`Missing chunks: ${missingChunks.join(', ')}`);
       }
-
-      // Concatenate chunks
+  
+      // Concatenate chunks into a single file for archiving purposes
       const outputPath = join(RECORDINGS_DIR, `recording-${this.sessionId}.webm`);
       const output = createWriteStream(outputPath);
-
+  
       for (let i = 0; i <= this.metadata.lastChunkId; i++) {
         const chunk = this.chunks.get(i);
         const chunkData = await fs.readFile(chunk.path);
         output.write(chunkData);
       }
-
+  
       await new Promise((resolve, reject) => {
         output.on('finish', resolve);
         output.on('error', reject);
         output.end();
       });
-
-      // Start transcription
-      this.status = 'transcribing';
-      await this.saveMetadata();
-      
-      const transcription = await this.transcribeRecording(outputPath);
-
+  
+      console.log(`Session ${this.sessionId} finalized. File saved at ${outputPath}`);
+  
+      // Notify client that the session is finalized
+      this.socket.send(JSON.stringify({
+        type: 'recording_complete',
+        payload: {
+          path: outputPath,
+          duration: this.metadata.totalDuration,
+          size: this.metadata.totalSize,
+          transcription: this.metadata.transcription, // Use the transcription gathered from chunks
+        },
+        sessionId: this.sessionId,
+        timestamp: Date.now(),
+      }));
+  
       this.status = 'completed';
       await this.saveMetadata();
-
+  
       return {
         path: outputPath,
-        transcription
-      };
-      return {
-        path: outputPath,
-        transcription
+        transcription: this.metadata.transcription, // Final transcription
       };
     } catch (error) {
       console.error('Error in finalize:', error);
@@ -212,6 +252,7 @@ class AudioSession {
       throw error;
     }
   }
+  
 
   sendStatus(message) {
     if (this.socket) {
@@ -245,124 +286,120 @@ server.on('connection', (socket) => {
 
   socket.on('message', async (data, isBinary) => {
     try {
-        if (isBinary) {
-            // Handle binary audio data
-            if (!currentSession) {
-                throw new Error('No active session');
-            }
+      if (isBinary) {
+        // Handle binary audio data
+        if (!currentSession) {
+          throw new Error('No active session');
+        }
 
-            console.log('Received binary chunk of size:', data.length);
-            const chunkId = currentSession.metadata.lastChunkId + 1;
-            await currentSession.addChunk(chunkId, data, {});
+        console.log('Received binary chunk of size:', data.length);
+        const chunkId = currentSession.metadata.lastChunkId + 1;
 
-            socket.send(JSON.stringify({
+        // Process the chunk and handle transcription
+        await currentSession.addChunk(chunkId, data);
+
+        // Notify client of chunk processing
+        socket.send(JSON.stringify({
+          type: 'status',
+          payload: {
+            chunkId,
+            totalDuration: currentSession.metadata.totalDuration,
+            totalSize: currentSession.metadata.totalSize,
+          },
+          sessionId: currentSession.sessionId,
+          timestamp: Date.now(),
+        }));
+      } else {
+        // Handle control messages
+        const message = JSON.parse(data.toString());
+        console.log('Received control message:', message);
+
+        switch (message.type) {
+          case 'command': {
+            if (message.payload.action === 'start') {
+              if (currentSession) {
+                throw new Error('Session already in progress');
+              }
+
+              const sessionId = `session-${Date.now()}`;
+              console.log('Starting new session:', sessionId);
+
+              const sessionDir = join(AUDIO_DIR, sessionId);
+              await fs.mkdir(sessionDir, { recursive: true });
+
+              currentSession = new AudioSession(sessionId, socket);
+              activeSessions.set(sessionId, currentSession);
+
+              socket.send(JSON.stringify({
                 type: 'status',
+                payload: { status: 'initialized' },
+                sessionId,
+                timestamp: Date.now(),
+              }));
+            } else if (message.payload.action === 'stop') {
+              if (!currentSession) {
+                throw new Error('No active session to stop');
+              }
+
+              console.log('Stopping recording for session:', currentSession.sessionId);
+              await currentSession.finalize();
+
+              socket.send(JSON.stringify({
+                type: 'recording_complete',
                 payload: {
-                    chunkId,
-                    totalDuration: currentSession.metadata.totalDuration,
-                    totalSize: currentSession.metadata.totalSize
+                  path: `recording-${currentSession.sessionId}.webm`,
+                  duration: currentSession.metadata.totalDuration,
+                  size: currentSession.metadata.totalSize,
                 },
                 sessionId: currentSession.sessionId,
-                timestamp: Date.now()
-            }));
-        } else {
-            // Handle control messages
-            const message = JSON.parse(data.toString());
-            console.log('Received control message:', message);
-
-            switch (message.type) {
-                case 'command':
-                    if (message.payload.action === 'start') {
-                        if (currentSession) {
-                            throw new Error('Session already in progress');
-                        }
-
-                        const sessionId = `session-${Date.now()}`;
-                        console.log('Starting new session:', sessionId);
-
-                        // Create session directory
-                        const sessionDir = join(AUDIO_DIR, sessionId);
-                        await fs.mkdir(sessionDir, { recursive: true });
-
-                        // Initialize new session
-                        currentSession = new AudioSession(sessionId, socket);
-                        activeSessions.set(sessionId, currentSession);
-
-                        socket.send(JSON.stringify({
-                            type: 'status',
-                            payload: { status: 'initialized' },
-                            sessionId,
-                            timestamp: Date.now()
-                        }));
-                    } else if (message.payload.action === 'stop') {
-                        if (!currentSession) {
-                            throw new Error('No active session to stop');
-                        }
-
-                        console.log('Stopping recording for session:', currentSession.sessionId);
-                        const result = await currentSession.finalize();
-
-                        socket.send(JSON.stringify({
-                            type: 'recording_complete',
-                            payload: {
-                                path: result.path,
-                                duration: currentSession.metadata.totalDuration,
-                                size: currentSession.metadata.totalSize,
-                                transcription: result.transcription
-                            },
-                            sessionId: currentSession.sessionId,
-                            timestamp: Date.now()
-                        }));
-
-                        // Do not set `currentSession = null` here.
-                    } else if (message.payload.action === 'end') { // Add new "end" command here
-                        if (!currentSession) {
-                            throw new Error('No active session to end');
-                        }
-
-                        console.log('Ending session:', currentSession.sessionId);
-                        await currentSession.finalize();
-                        activeSessions.delete(currentSession.sessionId); // Clean up the session.
-                        currentSession = null;
-
-                        socket.send(JSON.stringify({
-                            type: 'session_ended',
-                            sessionId: message.payload.sessionId,
-                            timestamp: Date.now()
-                        }));
-                    }
-                    break;
-
-                default:
-                    console.warn('Unknown message type:', message.type);
-                    break;
+                timestamp: Date.now(),
+              }));
             }
-        }
-    } catch (error) {
-        console.error('Error processing message:', error);
-        if (currentSession) {
-            currentSession.sendError(error.message);
-        } else {
-            socket.send(JSON.stringify({
-                type: 'error',
-                payload: { message: error.message },
-                timestamp: Date.now()
-            }));
-        }
-    }
-});
+            break;
+          }
 
+          case 'transcription': {
+            console.log('Received transcription:', message.payload.transcription);
+
+            // Forward transcription to client
+            socket.send(JSON.stringify({
+              type: 'transcription',
+              payload: message.payload.transcription,
+              sessionId: message.sessionId,
+              timestamp: Date.now(),
+            }));
+            break;
+          }
+
+          default:
+            console.warn('Unknown message type:', message.type);
+            break;
+        }
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      if (currentSession) {
+        currentSession.sendError(error.message);
+      } else {
+        socket.send(JSON.stringify({
+          type: 'error',
+          payload: { message: error.message },
+          timestamp: Date.now(),
+        }));
+      }
+    }
+  });
 
   socket.on('close', async () => {
-    if (currentSession) {
-      try {
+    try {
+      if (currentSession) {
         await currentSession.finalize();
-      } catch (error) {
-        console.error('Error finalizing session:', error);
+        currentSession = null;
       }
-      currentSession = null;
+      console.log('Client disconnected');
+    } catch (error) {
+      console.error('Error finalizing session on client disconnect:', error);
     }
-    console.log('Client disconnected');
   });
 
   socket.on('error', (error) => {
@@ -370,7 +407,7 @@ server.on('connection', (socket) => {
     socket.send(JSON.stringify({
       type: 'error',
       payload: { message: 'Internal server error' },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
   });
 });
