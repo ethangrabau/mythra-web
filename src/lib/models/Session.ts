@@ -32,7 +32,10 @@ export interface ISession extends Document {
     characterId: Types.ObjectId; // The character who received the loot
     value?: number; // In gold pieces
   }[];
-  importantLocations: string[];
+  importantLocations: {
+    name: string;
+    imageUrl?: string;
+  }[];
   characterUpdates: {
     characterId: Types.ObjectId;
     levelUp: boolean;
@@ -98,7 +101,12 @@ const SessionSchema = new Schema<ISession>(
         value: Number,
       },
     ],
-    importantLocations: [String],
+    importantLocations: [
+      {
+        name: String,
+        imageUrl: String,
+      },
+    ],
     characterUpdates: [
       {
         characterId: { type: Schema.Types.ObjectId, ref: 'Character' },
