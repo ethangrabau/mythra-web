@@ -5,11 +5,11 @@ export interface ICampaign extends Document {
   description: string;
   dmId: Types.ObjectId;
   players: {
-    userId: Types.ObjectId;
-    characterName: string;
-    characterClass: string;
-    characterLevel: number;
+    playerId: Types.ObjectId;
+    characterId: Types.ObjectId;
     isActive: boolean;
+    joinDate: Date;
+    leaveDate?: Date;
   }[];
   setting: string;
   startDate: Date;
@@ -29,14 +29,14 @@ const CampaignSchema = new Schema<ICampaign>(
   {
     name: { type: String, required: true },
     description: { type: String, required: true },
-    dmId: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
+    dmId: { type: Schema.Types.ObjectId, required: true, ref: 'Player' },
     players: [
       {
-        userId: { type: Schema.Types.ObjectId, ref: 'User' },
-        characterName: String,
-        characterClass: String,
-        characterLevel: Number,
+        playerId: { type: Schema.Types.ObjectId, ref: 'Player' },
+        characterId: { type: Schema.Types.ObjectId, ref: 'Character' },
         isActive: { type: Boolean, default: true },
+        joinDate: { type: Date, default: Date.now },
+        leaveDate: Date,
       },
     ],
     setting: String,
