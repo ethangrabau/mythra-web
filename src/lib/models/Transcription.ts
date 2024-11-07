@@ -113,4 +113,14 @@ const TranscriptionSchema = new Schema<ITranscription>(
   }
 );
 
+//This will be used to revise a transcription manually if the confidence score is low, speaker mispoke or the transcription is incorrect.
+TranscriptionSchema.methods.revise = function (newContent: string) {
+  if (!this.isRevised) {
+    this.originalContent = this.content;
+  }
+  this.content = newContent;
+  this.isRevised = true;
+  return this.save();
+};
+
 export const Transcription = model<ITranscription>('Transcription', TranscriptionSchema);
