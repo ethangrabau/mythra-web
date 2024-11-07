@@ -123,4 +123,17 @@ TranscriptionSchema.methods.revise = function (newContent: string) {
   return this.save();
 };
 
+//This method will get all transcriptions for a time range in a particular session
+TranscriptionSchema.statics.getTranscriptionsForSession = function (
+  sessionId: Types.ObjectId,
+  startTime: number,
+  endTime: number
+) {
+  return this.find({
+    sessionId,
+    'segment.startTime': { $gte: startTime },
+    'segment.endTime': { $lte: endTime },
+  }).sort('segment.index');
+};
+
 export const Transcription = model<ITranscription>('Transcription', TranscriptionSchema);
