@@ -20,6 +20,7 @@
 #audio/metadata
 /audio-chunks/
 /metadata/
+/recordings/
 
 # production
 /build
