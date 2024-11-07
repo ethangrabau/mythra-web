@@ -10,6 +10,7 @@ export interface ISession extends Document {
     platform?: string; //e.g. Roll20, FoundryVTT, etc.
   };
   summary: string;
+  transcriptions?: Types.ObjectId[]; // Reference to Transcription
   combatEncounters: {
     name: string;
     difficulty: 'easy' | 'medium' | 'hard' | 'deadly';
@@ -65,6 +66,7 @@ const SessionSchema = new Schema<ISession>(
       platform: String,
     },
     summary: String,
+    transcriptions: [{ type: Schema.Types.ObjectId, ref: 'Transcription' }],
     combatEncounters: [
       {
         name: String,
