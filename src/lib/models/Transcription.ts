@@ -104,14 +104,14 @@ const TranscriptionSchema = new Schema<ITranscription>(
   },
   {
     timestamps: true,
-    // indexes: [
-    //   { sessionId: 1, segment: 1 }, // For retrieving in order
-    //   { sessionId: 1, timestamp: 1 },
-    //   { tags: 1 }, // For searching by tags
-    //   { type: 1 }, // For filtering by type
-    // ],
   }
 );
+
+// Indexes to improve query performance
+TranscriptionSchema.index({ sessionId: 1, 'segment.startTime': 1 });
+TranscriptionSchema.index({ sessionId: 1, timestamp: 1 });
+TranscriptionSchema.index({ tags: 1 });
+TranscriptionSchema.index({ type: 1 });
 
 //This will be used to revise a transcription manually if the confidence score is low, speaker mispoke or the transcription is incorrect.
 TranscriptionSchema.methods.revise = function (newContent: string) {
