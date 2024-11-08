@@ -99,19 +99,22 @@ export function useAudioRecorder(): AudioRecorderHook {
             }
             break;
           }
+    
           case 'recording_complete': {
             setSessionData((prev) =>
               prev ? { ...prev, status: 'completed' } : defaultSessionData
             );
             if (message.payload.transcription) {
-              setTranscriptions((prev = []) => [...prev, message.payload.transcription!]);
+              setTranscriptions((prev) => [...prev, message.payload.transcription!]);
             }
             break;
           }
+    
           case 'ack': {
             console.log('Chunk acknowledged:', message.payload.chunkId);
             break;
           }
+    
           case 'status': {
             console.log('WebSocket status update received:', message.payload);
     
@@ -133,6 +136,7 @@ export function useAudioRecorder(): AudioRecorderHook {
             }
             break;
           }
+    
           case 'command': {
             if (message.payload.action === 'start') {
               setSessionActive(true);
@@ -143,20 +147,25 @@ export function useAudioRecorder(): AudioRecorderHook {
             console.log('Command received:', message.payload.action);
             break;
           }
+    
           case 'chunk': {
             // Log chunk metadata but ignore further processing
             console.debug('Received chunk metadata (ignored):', message.payload);
             break;
           }
+    
           case 'transcription': {
             setTranscriptions((prev) => {
-              // Always add new transcriptions to the array
-              if (message.payload.transcription) {
+              // Add transcription only if it's new
+              if (
+                message.payload.transcription &&
+                (!prev.length || prev[prev.length - 1].timestamp !== message.payload.transcription.timestamp)
+              ) {
                 return [...prev, message.payload.transcription];
               }
               return prev;
             });
-          
+    
             console.log('Transcription received and updated:', message.payload.transcription);
             break;
           }
@@ -165,6 +174,7 @@ export function useAudioRecorder(): AudioRecorderHook {
         console.error('Error processing message:', err);
       }
     };
+    
     
 
     socketRef.current = ws;

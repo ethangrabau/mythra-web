@@ -36,7 +36,7 @@ async function testTranscription() {
     await transcriptionService.validateAudioFile(testFilePath);
 
     // Read first few bytes to verify it's a WebM file
-    const buffer = fs.readFileSync(testFilePath, { length: 4 });
+    const buffer = (await fs.readFile(testFilePath)).slice(0, 4);
     console.log('File header:', buffer.toString('hex'));
     
     // Attempt transcription

@@ -17,12 +17,12 @@ export default function TranscriptionViewer({
   isRecording, 
   transcriptions 
 }: TranscriptionViewerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the latest transcription when updated
+  // Auto-scroll to the latest transcription
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    if (viewerRef.current) {
+      viewerRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [transcriptions]);
 
@@ -36,7 +36,9 @@ export default function TranscriptionViewer({
     });
   };
 
-  if (!transcriptions?.length) {
+  const latestTranscription = transcriptions[transcriptions.length - 1];
+
+  if (!latestTranscription) {
     return (
       <Card>
         <div className="rounded-lg bg-gray-50 p-8 text-center text-gray-500">
@@ -68,24 +70,20 @@ export default function TranscriptionViewer({
         </div>
       </div>
 
-      <div 
-        ref={containerRef} 
-        className="max-h-[500px] overflow-y-auto p-4 space-y-4 bg-gray-50"
-      >
-        {transcriptions.map((transcription, index) => (
-          <div 
-            key={`${transcription.timestamp}-${index}`}
-            className="flex gap-3 group hover:bg-gray-50 p-2 rounded-lg"
-          >
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Clock className="w-4 h-4" />
-              <span>{formatTimestamp(transcription.timestamp)}</span>
-            </div>
-            <p className="flex-1 text-gray-800 whitespace-pre-wrap">
-              {transcription.text}
-            </p>
+      <div className="max-h-[500px] overflow-y-auto p-4 space-y-4">
+        <div 
+          key={`${latestTranscription.timestamp}`}
+          className="flex gap-3 group hover:bg-gray-50 p-2 rounded-lg"
+          ref={viewerRef}
+        >
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Clock className="w-4 h-4" />
+            <span>{formatTimestamp(latestTranscription.timestamp)}</span>
           </div>
-        ))}
+          <p className="flex-1 text-gray-800 whitespace-pre-wrap">
+            {latestTranscription.text}
+          </p>
+        </div>
       </div>
     </Card>
   );

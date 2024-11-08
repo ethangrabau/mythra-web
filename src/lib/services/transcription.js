@@ -21,7 +21,7 @@ export default class TranscriptionService {
       const form = new FormData();
 
       // Read the file buffer
-      const fileBuffer = fs.readFileSync(filePath);
+      const fileBuffer = await fs.readFile(filePath);
 
       // Append the file buffer with a filename
       form.append('file', fileBuffer, {
