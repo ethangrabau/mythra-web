@@ -84,18 +84,25 @@ export function useAudioRecorder(): AudioRecorderHook {
       setError('Failed to connect to server. Is the server running?');
     };
 
-    ws.onmessage = async event => {
+    ws.onmessage = async (event) => {
       try {
         const message = JSON.parse(event.data) as WebSocketMessage;
         console.log('Received message:', message);
-
+    
         switch (message.type) {
           case 'error': {
-            setError(message.payload.message ?? null);
+            if (message.payload.message?.includes('Session already in progress')) {
+              console.log('Session is already active, transitioning to session view.');
+              setSessionActive(true); // Sync with the active session
+            } else {
+              setError(message.payload.message ?? null);
+            }
             break;
           }
           case 'recording_complete': {
-            setSessionData(prev => prev ? { ...prev, status: 'completed' } : defaultSessionData);
+            setSessionData((prev) =>
+              prev ? { ...prev, status: 'completed' } : defaultSessionData
+            );
             if (message.payload.transcription) {
               setTranscriptions((prev = []) => [...prev, message.payload.transcription!]);
             }
@@ -107,7 +114,7 @@ export function useAudioRecorder(): AudioRecorderHook {
           }
           case 'status': {
             console.log('WebSocket status update received:', message.payload);
-          
+    
             // Update session data with session ID and status
             setSessionData((prev) => {
               const newData = {
@@ -117,7 +124,7 @@ export function useAudioRecorder(): AudioRecorderHook {
               };
               return newData;
             });
-          
+    
             // Log session ID for debugging
             if (message.payload.sessionId) {
               console.log('Updated session ID:', message.payload.sessionId);
@@ -137,21 +144,20 @@ export function useAudioRecorder(): AudioRecorderHook {
             break;
           }
           case 'chunk': {
-            console.log('Chunk message:', message.payload);
+            // Log chunk metadata but ignore further processing
+            console.debug('Received chunk metadata (ignored):', message.payload);
             break;
           }
           case 'transcription': {
             setTranscriptions((prev) => {
-              // Add transcription only if it's unique (avoid duplicates)
-              if (
-                message.payload.transcription &&
-                (!prev.length || prev[prev.length - 1].timestamp !== message.payload.transcription.timestamp)
-              ) {
+              // Always add new transcriptions to the array
+              if (message.payload.transcription) {
                 return [...prev, message.payload.transcription];
               }
               return prev;
             });
-            console.log('Transcription received:', message.payload.transcription);
+          
+            console.log('Transcription received and updated:', message.payload.transcription);
             break;
           }
         }
@@ -159,6 +165,7 @@ export function useAudioRecorder(): AudioRecorderHook {
         console.error('Error processing message:', err);
       }
     };
+    
 
     socketRef.current = ws;
   }, [maxReconnectAttempts]);
@@ -194,22 +201,29 @@ export function useAudioRecorder(): AudioRecorderHook {
 
   const startSession = useCallback(async (providedSessionId?: string) => {
     try {
-      let attempts = 0;
-      while (!isConnected && attempts < 5) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        attempts++;
-      }
-  
+      // Ensure WebSocket is connected before proceeding
       if (!isConnected) {
-        throw new Error('Failed to establish WebSocket connection');
+        throw new Error('WebSocket is not connected');
       }
   
-      const newSessionId = providedSessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const startMessage = createWebSocketMessage('command', { action: 'start', sessionId: newSessionId }, newSessionId);
+      // Generate or reuse a session ID
+      const newSessionId =
+        providedSessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
+      // Create the start session WebSocket message
+      const startMessage = createWebSocketMessage(
+        'command',
+        { action: 'start', sessionId: newSessionId },
+        newSessionId
+      );
+  
+      // Send the start command over WebSocket
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify(startMessage));
         setSessionActive(true);
+        console.log('Session started with ID:', newSessionId);
+  
+        // Reset transcription and session data for the new session
         setTranscriptions([]);
         setSessionData({
           ...defaultSessionData,
@@ -217,9 +231,10 @@ export function useAudioRecorder(): AudioRecorderHook {
           startTime: Date.now(),
           status: 'initializing',
         });
+  
         return newSessionId;
       } else {
-        throw new Error('WebSocket not connected');
+        throw new Error('WebSocket is not in an open state');
       }
     } catch (err) {
       console.error('Error starting session:', err);
@@ -227,6 +242,9 @@ export function useAudioRecorder(): AudioRecorderHook {
       throw err;
     }
   }, [isConnected]);
+  
+  
+  
 
   const startRecording = useCallback(async () => {
     try {
@@ -274,12 +292,21 @@ export function useAudioRecorder(): AudioRecorderHook {
       });
 
       recorder.ondataavailable = async (event) => {
-        if (event.data.size > 0 && socketRef.current?.readyState === WebSocket.OPEN) {
+        console.log(`New audio chunk received. Size: ${event.data.size} bytes`);
+      
+        if (event.data.size <= 10240) { // Skip chunks smaller than 10 KB
+          console.warn(`Skipped small or empty chunk. Size: ${event.data.size} bytes`);
+          return;
+        }
+      
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
           try {
             const arrayBuffer = await event.data.arrayBuffer();
             const checksum = await calculateChecksum(arrayBuffer);
+            console.log(`Processed chunk. Size: ${arrayBuffer.byteLength} bytes, Checksum: ${checksum}`);
+      
             socketRef.current.send(arrayBuffer);
-            
+      
             const metadata: AudioChunkMetadata = {
               type: 'metadata',
               chunkId: sessionData?.chunks?.length ?? 0,
@@ -288,17 +315,17 @@ export function useAudioRecorder(): AudioRecorderHook {
               checksum,
               sessionId: currentSessionId
             };
-
+      
             const message = createWebSocketMessage('chunk', metadata, currentSessionId);
             sendWebSocketMessage(message);
-            
+      
             setSessionData(prev => {
               if (!prev) return null;
               return {
                 ...prev,
                 chunks: [...(prev.chunks || []), metadata],
                 totalSize: prev.totalSize + arrayBuffer.byteLength,
-                totalDuration: prev.totalDuration + 1000
+                totalDuration: prev.totalDuration + 5000 // Match the chunk interval
               };
             });
           } catch (err) {
@@ -307,8 +334,10 @@ export function useAudioRecorder(): AudioRecorderHook {
           }
         }
       };
+      
+      
 
-      recorder.start(1000);
+      recorder.start(5000);
       mediaRecorder.current = recorder;
       setIsRecording(true);
 

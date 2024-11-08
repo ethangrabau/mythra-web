@@ -17,12 +17,12 @@ export default function TranscriptionViewer({
   isRecording, 
   transcriptions 
 }: TranscriptionViewerProps) {
-  const viewerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to the latest transcription when updated
+  // Auto-scroll to the latest transcription when updated
   useEffect(() => {
-    if (viewerRef.current) {
-      viewerRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [transcriptions]);
 
@@ -68,24 +68,24 @@ export default function TranscriptionViewer({
         </div>
       </div>
 
-      <div className="max-h-[500px] overflow-y-auto">
-        <div className="p-4 space-y-4">
-          {transcriptions.map((transcription, index) => (
-            <div 
-              key={`${transcription.timestamp}-${index}`}
-              className="flex gap-3 group hover:bg-gray-50 p-2 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Clock className="w-4 h-4" />
-                <span>{formatTimestamp(transcription.timestamp)}</span>
-              </div>
-              <p className="flex-1 text-gray-800 whitespace-pre-wrap">
-                {transcription.text}
-              </p>
+      <div 
+        ref={containerRef} 
+        className="max-h-[500px] overflow-y-auto p-4 space-y-4 bg-gray-50"
+      >
+        {transcriptions.map((transcription, index) => (
+          <div 
+            key={`${transcription.timestamp}-${index}`}
+            className="flex gap-3 group hover:bg-gray-50 p-2 rounded-lg"
+          >
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Clock className="w-4 h-4" />
+              <span>{formatTimestamp(transcription.timestamp)}</span>
             </div>
-          ))}
-          <div ref={viewerRef} />
-        </div>
+            <p className="flex-1 text-gray-800 whitespace-pre-wrap">
+              {transcription.text}
+            </p>
+          </div>
+        ))}
       </div>
     </Card>
   );
