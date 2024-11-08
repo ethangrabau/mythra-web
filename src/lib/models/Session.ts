@@ -17,9 +17,25 @@ export interface ISession extends Document {
     outcome: string;
   }[];
   questProgress: {
-    questName: string;
-    status: 'started' | 'advanced' | 'completed' | 'failed';
-    notes?: string;
+    questId: Types.ObjectId;
+    previousStatus: 'not_started' | 'in_progress' | 'completed' | 'failed' | 'abandoned';
+    newStatus: 'not_started' | 'in_progress' | 'completed' | 'failed' | 'abandoned';
+    completedObjectives: {
+      objectiveIndex: number;
+      note?: string;
+    }[];
+    rewards?: {
+      experience?: number;
+      gold?: number;
+      items?: string[];
+      reputation?: {
+        factionName: string;
+        amount: number;
+      }[];
+      other?: string[];
+    };
+    dmNotes?: string;
+    playerNotes?: string;
   }[];
   npcsIntroduced: {
     name: string;
@@ -79,12 +95,41 @@ const SessionSchema = new Schema<ISession>(
     ],
     questProgress: [
       {
-        questName: String,
-        status: {
-          type: String,
-          enum: ['started', 'advanced', 'completed', 'failed'],
+        questId: {
+          type: Schema.Types.ObjectId,
+          required: true,
+          ref: 'Quest',
         },
-        notes: String,
+        previousStatus: {
+          type: String,
+          required: true,
+          enum: ['not_started', 'in_progress', 'completed', 'failed', 'abandoned'],
+        },
+        newStatus: {
+          type: String,
+          required: true,
+          enum: ['not_started', 'in_progress', 'completed', 'failed', 'abandoned'],
+        },
+        completedObjectives: [
+          {
+            objectiveIndex: { type: Number, required: true },
+            note: String,
+          },
+        ],
+        rewards: {
+          experience: Number,
+          gold: Number,
+          items: [String],
+          reputation: [
+            {
+              factionName: String,
+              amount: Number,
+            },
+          ],
+          other: [String],
+        },
+        dmNotes: String,
+        playerNotes: String,
       },
     ],
     npcsIntroduced: [
