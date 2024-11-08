@@ -1,157 +1,121 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import OpenAI from "openai"; // Import OpenAI SDK
-import { generateLLMPrompt } from './src/lib/services/llmPrompt.js'; // Import the prompt generator
+import OpenAI from 'openai';
+import { generateMemoryPrompt } from './src/lib/services/memoryPrompt.js';
 
 // Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // OpenAI setup
-const openai = new OpenAI(); // Uses OPENAI_API_KEY from environment variables
+const openai = new OpenAI(); // Automatically uses OPENAI_API_KEY
 
 // File paths
-const sessionId = 'session-1730992152779';
+const sessionId = process.env.TEST_MODE ? 'session-test' : 'session-12345';
 const transcriptionFilePath = path.join(__dirname, 'metadata', `${sessionId}-transcription.json`);
-const memoryFilePath = path.join(__dirname, 'metadata', 'memory.json');
+const memoryFilePath = path.join(__dirname, 'metadata', 'memory-log.txt');
 
 // Memory structure
 let memory = {
-  recentActivity: '',
   characters: [],
-  locations: [],
   items: [],
+  locations: [],
+  processedChunks: [],
 };
 
-// Load existing memory or initialize a new one
+// Load memory
 const loadMemory = () => {
   try {
     if (fs.existsSync(memoryFilePath)) {
       const data = fs.readFileSync(memoryFilePath, 'utf-8');
       memory = JSON.parse(data);
+      console.log('Memory loaded:', memory);
     }
   } catch (err) {
-    console.error('Error loading memory file:', err);
+    console.error('Error loading memory, starting fresh:', err);
   }
 };
 
-// Save updated memory to the file
-const saveMemory = () => {
+// Save memory
+const saveMemory = (memoryUpdate) => {
   try {
-    fs.writeFileSync(memoryFilePath, JSON.stringify(memory, null, 2));
-    console.log('Memory saved to file.');
+    fs.writeFileSync(memoryFilePath, memoryUpdate);
+    console.log('Memory updated successfully.');
   } catch (err) {
-    console.error('Error saving memory file:', err);
+    console.error('Error saving memory:', err);
   }
 };
 
-// Function to call the LLM
-const callLLM = async (recentActivity, currentMemory) => {
+// LLM Call
+const callLLM = async (transcription) => {
+    const prompt = generateMemoryPrompt(transcription, memory);
     try {
       console.log('Calling LLM for memory updates...');
-      const prompt = generateLLMPrompt(recentActivity, currentMemory);
       const response = await openai.chat.completions.create({
         model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }],
       });
   
-      let rawResponse = response.choices[0].message.content;
-      console.log('Raw LLM Response:', rawResponse);
-  
-      // Sanitize the response to remove Markdown-style formatting
-      if (rawResponse.startsWith('```json')) {
-        rawResponse = rawResponse.replace(/```json|```/g, '').trim();
-      }
-  
-      const result = JSON.parse(rawResponse);
-      console.log('Parsed LLM Response:', result);
-      return result;
+      const updatedMemory = response.choices[0]?.message?.content;
+      if (!updatedMemory) throw new Error('Empty LLM response.');
+      console.log('LLM Response:', updatedMemory);
+      return updatedMemory; // Return full memory as-is
     } catch (error) {
-      console.error('Error calling LLM:', error);
-      return null; // Return null to prevent breaking the flow
+      console.error('Error during LLM call:', error);
+      return null;
     }
   };
   
 
-// Function to process new transcription
+// Process transcription
 const processNewTranscription = async (newText) => {
-    console.log(`Processing new transcription: ${newText}`);
+    console.log(`Processing transcription chunk: ${newText}`);
   
-    // Only add unique, new text to the recentActivity buffer
-    const currentActivity = memory.recentActivity.trim();
-    const newContent = newText.replace(currentActivity, '').trim();
+    // Call LLM for memory updates
+    const updatedMemory = await callLLM(newText);
   
-    if (newContent) {
-      memory.recentActivity += ` ${newContent}`.trim();
-      console.log(`Updated recent activity buffer: ${memory.recentActivity}`);
+    if (updatedMemory) {
+      console.log('Memory update received from LLM:', updatedMemory);
+  
+      // Save the raw memory update directly
+      try {
+        saveMemory(updatedMemory);
+        memory = { ...memory, raw: updatedMemory }; // Optionally store the latest raw update
+        console.log('Memory updated successfully.');
+      } catch (error) {
+        console.error('Error saving raw memory update:', error);
+      }
     } else {
-      console.log('No new unique content to append to recent activity.');
-      return; // Skip LLM call if there's no new content
+      console.warn('No update received from LLM.');
     }
-  
-    // Call LLM function to generate memory updates
-    const memoryUpdates = await callLLM(memory.recentActivity, memory);
-  
-    if (memoryUpdates) {
-      // Ensure fields are initialized
-      if (!memory.characters) memory.characters = [];
-      if (!memory.locations) memory.locations = [];
-      if (!memory.items) memory.items = [];
-  
-      // Prevent duplicate entries by using sets or filtering
-      const deduplicate = (arr, key) => {
-        const seen = new Set();
-        return arr.filter((item) => {
-          const val = item[key];
-          if (seen.has(val)) return false;
-          seen.add(val);
-          return true;
-        });
-      };
-  
-      memory.characters.push(...memoryUpdates.characters);
-      memory.characters = deduplicate(memory.characters, 'name');
-  
-      memory.locations.push(...memoryUpdates.locations);
-      memory.locations = deduplicate(memory.locations, 'name');
-  
-      memory.items.push(...memoryUpdates.items);
-      memory.items = deduplicate(memory.items, 'name');
-  
-      console.log('Memory updated:', memory);
-    } else {
-      console.warn('No updates generated by LLM.');
-    }
-  
-    saveMemory();
   };
   
 
-// Function to check for updates
+// Monitor transcriptions
 const checkForUpdates = () => {
   fs.readFile(transcriptionFilePath, 'utf-8', (err, data) => {
-    if (err) {
-      console.error('Error reading transcription file:', err);
-      return;
-    }
+    if (err) return console.error('Error reading transcription file:', err);
 
     try {
-      const transcription = JSON.parse(data);
-      const newText = transcription.text;
+      const transcriptionData = JSON.parse(data);
+      const transcriptionChunks = transcriptionData.text || [];
 
-      if (newText && newText !== memory.recentActivity.trim()) {
-        processNewTranscription(newText);
-      } else {
-        console.log('No new transcription to process.');
-      }
+      transcriptionChunks.forEach((chunk) => {
+        const newText = chunk.text.trim();
+        if (newText && !memory.processedChunks.includes(newText)) {
+          memory.processedChunks.push(newText);
+          processNewTranscription(newText);
+        } else {
+          console.log('No new transcription chunks to process.');
+        }
+      });
     } catch (err) {
       console.error('Error parsing transcription file:', err);
     }
   });
 };
 
-// Load memory and start monitoring transcription file
+// Initialize
 loadMemory();
-console.log(`Monitoring transcription file: ${transcriptionFilePath}`);
-setInterval(checkForUpdates, 10000); // Check every 30 seconds
+setInterval(checkForUpdates, 10000);
