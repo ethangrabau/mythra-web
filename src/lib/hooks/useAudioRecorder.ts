@@ -4,7 +4,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { calculateChecksum } from '../utils/audio';
 import {
-  AudioChunkMetadata,
   SessionMetadata,
   WebSocketMessage,
   TranscriptionData,
@@ -288,13 +287,16 @@ export function useAudioRecorder(): AudioRecorderHook {
       }
 
       const recorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : 'audio/ogg;codecs=opus'
       });
 
       recorder.ondataavailable = async (event) => {
         console.log(`New audio chunk received. Size: ${event.data.size} bytes`);
       
-        if (event.data.size <= 10240) { // Skip chunks smaller than 10 KB
+        // Add minimum chunk size check (5KB instead of 10KB to catch more data)
+        if (event.data.size <= 5120) {
           console.warn(`Skipped small or empty chunk. Size: ${event.data.size} bytes`);
           return;
         }
@@ -302,32 +304,18 @@ export function useAudioRecorder(): AudioRecorderHook {
         if (socketRef.current?.readyState === WebSocket.OPEN) {
           try {
             const arrayBuffer = await event.data.arrayBuffer();
+            
+            // Add validation check
+            if (arrayBuffer.byteLength === 0) {
+              console.warn('Empty audio buffer received');
+              return;
+            }
+      
             const checksum = await calculateChecksum(arrayBuffer);
             console.log(`Processed chunk. Size: ${arrayBuffer.byteLength} bytes, Checksum: ${checksum}`);
       
             socketRef.current.send(arrayBuffer);
-      
-            const metadata: AudioChunkMetadata = {
-              type: 'metadata',
-              chunkId: sessionData?.chunks?.length ?? 0,
-              timestamp: Date.now(),
-              size: arrayBuffer.byteLength,
-              checksum,
-              sessionId: currentSessionId
-            };
-      
-            const message = createWebSocketMessage('chunk', metadata, currentSessionId);
-            sendWebSocketMessage(message);
-      
-            setSessionData(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                chunks: [...(prev.chunks || []), metadata],
-                totalSize: prev.totalSize + arrayBuffer.byteLength,
-                totalDuration: prev.totalDuration + 5000 // Match the chunk interval
-              };
-            });
+            // ... rest of your code
           } catch (err) {
             console.error('Error sending audio chunk:', err);
             setError('Failed to send audio chunk');
@@ -337,7 +325,7 @@ export function useAudioRecorder(): AudioRecorderHook {
       
       
 
-      recorder.start(5000);
+      recorder.start(3000);
       mediaRecorder.current = recorder;
       setIsRecording(true);
 
@@ -345,7 +333,7 @@ export function useAudioRecorder(): AudioRecorderHook {
       console.error('Error starting recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, [isConnected, sendWebSocketMessage, sessionActive, sessionData, startSession]);
+  }, [isConnected, sessionActive, sessionData, startSession]);
 
   const stopRecording = useCallback(() => {
     console.log('Stopping recording...');

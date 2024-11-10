@@ -5,8 +5,9 @@ import { PlayCircle, StopCircle, Images } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 import { useState } from 'react';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
+import ImageDisplay from '@/components/ImageDisplay';
 
-export default function SessionPage() {
+const SessionPage = () => {
   const router = useRouter();
   const {
     isRecording,
@@ -80,6 +81,8 @@ export default function SessionPage() {
           transcriptions={transcriptions}
         />
 
+        <ImageDisplay sessionId={sessionData?.sessionId || ''} />
+
         <div>
           <button
             onClick={() => router.push('/recaps')}
@@ -95,4 +98,6 @@ export default function SessionPage() {
       </div>
     </main>
   );
-}
+};
+
+export default SessionPage;

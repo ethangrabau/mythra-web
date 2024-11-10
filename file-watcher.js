@@ -97,8 +97,8 @@ const callImagePromptLLM = async (newText, recentActivity) => {
   };  
 
 // Process transcription
-const processNewTranscription = async (newText) => {
-  console.log(`Processing transcription chunk: ${newText}`);
+const processNewTranscription = async (newText, sessionId) => {
+  console.log(`Processing transcription chunk for session ${sessionId}: ${newText}`);
 
   // Call LLM for memory updates
   const updatedMemory = await callLLM(newText);
@@ -106,24 +106,26 @@ const processNewTranscription = async (newText) => {
   if (updatedMemory) {
     console.log('Memory update received from LLM:', updatedMemory);
 
-    // Save the raw memory update directly
     try {
       saveMemory(updatedMemory);
-      memory = { ...memory, raw: updatedMemory }; // Optionally store the latest raw update
+      memory = { ...memory, raw: updatedMemory };
       console.log('Memory updated successfully.');
     } catch (error) {
       console.error('Error saving raw memory update:', error);
     }
 
-    // Generate recent activity (last X characters from processed transcription chunks)
-    const recentActivity = memory.processedChunks.slice(-5).join(' '); // Adjust slice range as needed
-
-    // Call LLM for image prompt
+    const recentActivity = memory.processedChunks.slice(-5).join(' ');
     const imagePrompt = await callImagePromptLLM(newText, recentActivity);
+
+    // New logging to debug the prompt
+    console.log('Image generation decision:', imagePrompt === null ? 'No image needed' : 'Generate image');
+    if (imagePrompt) {
+      console.log('Final image prompt:', imagePrompt);
+    }
 
     if (imagePrompt && imagePrompt.toLowerCase() !== 'no image needed') {
       console.log('Generating image with Flux...');
-      const imagePath = await generateImageFlux(imagePrompt);
+      const imagePath = await generateImageFlux(imagePrompt, sessionId);
 
       if (imagePath) {
         console.log(`Image generated and saved at: ${imagePath}`);
@@ -132,6 +134,7 @@ const processNewTranscription = async (newText) => {
       }
     } else {
       console.log('No image generated as per LLM response.');
+      return; // Add early return to prevent further processing
     }
   } else {
     console.warn('No update received from LLM.');
@@ -140,28 +143,55 @@ const processNewTranscription = async (newText) => {
 
 // Monitor transcriptions
 const checkForUpdates = () => {
-  fs.readFile(transcriptionFilePath, 'utf-8', (err, data) => {
-    if (err) return console.error('Error reading transcription file:', err);
+  console.log('=== Checking for updates ===');
+  fs.readdir(path.join(__dirname, 'metadata'), (err, files) => {
+    if (err) {
+      console.error('Error reading metadata directory:', err);
+      return;
+    }
 
-    try {
-      const transcriptionData = JSON.parse(data);
-      const transcriptionChunks = transcriptionData.text || [];
+    console.log('Found files in metadata directory:', files);
 
-      transcriptionChunks.forEach((chunk) => {
-        const newText = chunk.text.trim();
-        if (newText && !memory.processedChunks.includes(newText)) {
-          memory.processedChunks.push(newText);
-          processNewTranscription(newText);
-        } else {
-          console.log('No new transcription chunks to process.');
+    // Find transcription files
+    const transcriptionFiles = files.filter(file => file.endsWith('-transcription.json'));
+    console.log('Found transcription files:', transcriptionFiles);
+
+    transcriptionFiles.forEach(file => {
+      // Extract session ID from filename
+      const sessionId = file.replace('-transcription.json', '');
+      const filePath = path.join(__dirname, 'metadata', file);
+    
+      fs.readFile(filePath, 'utf-8', (err, data) => {
+        if (err) {
+          console.error(`Error reading transcription file ${file}:`, err);
+          return;
+        }
+    
+        try {
+          console.log('Processing transcription for session:', sessionId);
+          const transcriptionData = JSON.parse(data);
+          const text = transcriptionData.text?.trim();
+    
+          // Only process if we have text and haven't processed it before
+          if (text && !memory.processedChunks.includes(text)) {
+            console.log('Found new text to process:', text);
+            memory.processedChunks.push(text);
+            processNewTranscription(text, sessionId);
+          } else {
+            console.log('No new text to process for session:', sessionId);
+          }
+        } catch (err) {
+          console.error('Error parsing transcription file:', err);
         }
       });
-    } catch (err) {
-      console.error('Error parsing transcription file:', err);
-    }
+    });
   });
 };
 
-// Initialize
-loadMemory();
-setInterval(checkForUpdates, 10000);
+export const fileWatcher = {
+  start: () => {
+    console.log('Starting file watcher...');
+    loadMemory();
+    setInterval(checkForUpdates, 10000);
+  }
+};

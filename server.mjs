@@ -5,6 +5,9 @@ import fs from 'fs/promises';
 import { createWriteStream, mkdirSync } from 'fs';
 import crypto from 'crypto';
 import TranscriptionService from './src/lib/services/transcription.js';
+import express from 'express';  // Keep only this one
+import cors from 'cors';  // Add this if not already present
+import { fileWatcher } from './file-watcher.js';
 
 // Get the current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -14,12 +17,13 @@ const __dirname = dirname(__filename);
 const AUDIO_DIR = join(__dirname, 'audio-chunks');
 const RECORDINGS_DIR = join(__dirname, 'recordings');
 const METADATA_DIR = join(__dirname, 'metadata');
+const IMAGES_DIR = join(__dirname, 'generated_images');
 
 console.log('=== Initializing Server ===');
 
 // Ensure all required directories exist
 try {
-  for (const dir of [AUDIO_DIR, RECORDINGS_DIR, METADATA_DIR]) {
+  for (const dir of [AUDIO_DIR, RECORDINGS_DIR, METADATA_DIR, IMAGES_DIR]) {
     mkdirSync(dir, { recursive: true });
     console.log(`Directory created/verified: ${dir}`);
   }
@@ -393,23 +397,43 @@ setInterval(() => {
   console.log(`Active sessions: ${activeSessions.size}`);
 }, 30000);
 
-import express from 'express';
 const app = express();
 
-app.get('/api/transcription/:sessionId', async (req, res) => {
+// Move middleware setup before routes
+app.use(cors());
+app.use('/api/images', express.static(IMAGES_DIR));
+
+app.get('/api/images/latest/:sessionId', async (req, res) => {
+  try {
     const { sessionId } = req.params;
-    const transcriptionPath = join(METADATA_DIR, `${sessionId}-transcription.json`);
-    try {
-        const data = await fs.readFile(transcriptionPath, 'utf-8');
-        res.json(JSON.parse(data)); // Sends the transcription as JSON.
-    } catch (error) {
-        console.error(`Error fetching transcription for session ${sessionId}:`, error);
-        res.status(404).send({ error: 'Transcription not found' });
+    console.log('Checking for images for session:', sessionId);
+    const files = await fs.readdir(IMAGES_DIR);
+    console.log('Available images:', files);
+    
+    // Filter files for this session and sort by timestamp
+    const sessionImages = files
+      .filter(file => file.startsWith(sessionId))
+      .sort((a, b) => {
+        const timeA = parseInt(a.split('-')[1]);
+        const timeB = parseInt(b.split('-')[1]);
+        return timeB - timeA;
+      });
+
+    if (sessionImages.length > 0) {
+      res.json({ imagePath: `/api/images/${sessionImages[0]}` });
+    } else {
+      res.status(404).json({ error: 'No images found for this session' });
     }
+  } catch (error) {
+    console.error('Error fetching latest image:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Start Express server
-const PORT = 3001; // Use a port not conflicting with WebSocket.
+const PORT = 3001;
 app.listen(PORT, () => {
-    console.log(`Express API running on http://localhost:${PORT}`);
+  console.log(`Express API running on http://localhost:${PORT}`);
+  // Start the file watcher after server is ready
+  fileWatcher.start();
 });
