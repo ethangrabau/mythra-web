@@ -1,3 +1,20 @@
+import * as dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+console.log('Current working directory:', process.cwd());
+console.log('Looking for .env.local at:', path.resolve(process.cwd(), '.env.local'));
+
+//Load .env.local file
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+
+// Log all environment variables (be careful with sensitive info)
+console.log('Loaded environment variables:', {
+  MONGODB_URI: process.env.MONGODB_URI ? 'Found' : 'Not found',
+  NODE_ENV: process.env.NODE_ENV,
+  PWD: process.env.PWD,
+});
+
 import dbConnect from '../db';
 import { Campaign } from '../models/Campaign';
 import { Session } from '../models/Session';
@@ -19,6 +36,7 @@ async function clearDatabase() {
 
 async function seedDatabase() {
   try {
+    validateEnvironment();
     await dbConnect();
     await clearDatabase();
 
@@ -337,6 +355,18 @@ if (require.main === module) {
       console.error('Fatal error:', err);
       process.exit(1);
     });
+}
+
+function validateEnvironment() {
+  const required = ['MONGODB_URI'];
+  const missing = required.filter(key => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error('❌ Missing required environment variables:');
+    missing.forEach(key => console.log(`- ${key}`));
+    console.log('\nMake sure you have a .env.local file with these variables.');
+    process.exit(1);
+  }
 }
 
 export default seedDatabase;
