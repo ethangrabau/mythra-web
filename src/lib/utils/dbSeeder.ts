@@ -1,12 +1,12 @@
-import * as dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { loadEnv } from './env';
 
 console.log('Current working directory:', process.cwd());
 console.log('Looking for .env.local at:', path.resolve(process.cwd(), '.env.local'));
 
 //Load .env.local file
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+loadEnv();
 
 // Log all environment variables (be careful with sensitive info)
 console.log('Loaded environment variables:', {
@@ -348,9 +348,14 @@ async function seedDatabase() {
 }
 
 //This will allow us to run the seeder via node
-if (require.main === module) {
+// Use ES modules syntax for direct execution check
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  console.log('Running seeder...');
   seedDatabase()
-    .then(() => process.exit(0))
+    .then(() => {
+      console.log('Seeding complete!');
+      process.exit(0);
+    })
     .catch(err => {
       console.error('Fatal error:', err);
       process.exit(1);
