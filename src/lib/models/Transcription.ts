@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
 interface ITranscription extends Document {
   sessionId: Types.ObjectId;
@@ -136,4 +136,5 @@ TranscriptionSchema.statics.getTranscriptionsForSession = function (
   }).sort('segment.index');
 };
 
-export const Transcription = model<ITranscription>('Transcription', TranscriptionSchema);
+export const Transcription =
+  mongoose.models.Transcription || model<ITranscription>('Transcription', TranscriptionSchema);
