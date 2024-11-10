@@ -177,4 +177,4 @@ const SessionSchema = new Schema<ISession>(
   { timestamps: true }
 ); // This adds createdAt and updatedAt automatically
 
-export const Session = mongoose.model<ISession>('Session', SessionSchema);
+export const Session = mongoose.models.Session || mongoose.model<ISession>('Session', SessionSchema);

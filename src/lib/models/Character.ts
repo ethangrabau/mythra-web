@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
 // Character Interface
 interface ICharacter extends Document {
@@ -101,3 +101,5 @@ const CharacterSchema = new Schema<ICharacter>(
   },
   { timestamps: true }
 );
+
+export const Character = mongoose.models.Character || model<ICharacter>('Character', CharacterSchema);

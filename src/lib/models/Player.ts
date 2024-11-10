@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
 // Player Interface
 interface IPlayer extends Document {
@@ -32,3 +32,5 @@ const PlayerSchema = new Schema<IPlayer>(
   },
   { timestamps: true }
 );
+
+export const Player = mongoose.models.Player || model<IPlayer>('Player', PlayerSchema);

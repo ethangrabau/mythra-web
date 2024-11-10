@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
 // Quest Interface
 interface IQuest extends Document {
@@ -217,4 +217,4 @@ QuestSchema.methods.updateStatus = async function (newStatus: IQuest['status'], 
   return this.save();
 };
 
-export const Quest = model<IQuest>('Quest', QuestSchema);
+export const Quest = mongoose.models.Quest || model<IQuest>('Quest', QuestSchema);
