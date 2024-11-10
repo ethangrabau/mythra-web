@@ -7,51 +7,59 @@ interface ImageDisplayProps {
   sessionId: string;
 }
 
-const ImageDisplay = ({ sessionId }: ImageDisplayProps) => {
+export default function ImageDisplay({ sessionId }: ImageDisplayProps) {
   const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
-
+  
     const checkForNewImage = async () => {
-        try {
-          console.log('Checking for new image for session:', sessionId);
-          const response = await fetch(`http://localhost:3001/api/images/latest/${sessionId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.imagePath) {
-              console.log('New image found:', data.imagePath);
-              setCurrentImage(data.imagePath);
-            }
-          } else {
-            console.log('No image available yet:', response.status);
+      try {
+        setLoading(true);
+        const normalizedSessionId = sessionId.replace(/-[^-]+$/, '');
+        const response = await fetch(`http://localhost:3001/api/images/latest/${normalizedSessionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.imagePath && data.imagePath !== currentImage) {
+            console.log('Found new image:', data.imagePath);
+            setCurrentImage(data.imagePath);
           }
-        } catch (error) {
-          console.error('Error fetching image:', error);
+        } else {
+          console.log('No images available yet');
         }
-      };
-
+      } catch (error) {
+        console.error('Error fetching image:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
     checkForNewImage();
-    const interval = setInterval(checkForNewImage, 5000);
-
+    const interval = setInterval(checkForNewImage, 3000);
+  
     return () => clearInterval(interval);
-  }, [sessionId]);
+  }, [sessionId, currentImage]);
 
-  if (!currentImage) return null;
+  if (!currentImage) {
+    return loading ? (
+      <div className="mt-4 p-4 text-center text-gray-500">
+        Waiting for scene generation...
+      </div>
+    ) : null;
+  }
 
   return (
     <div className="mt-4">
       <h3 className="text-lg font-semibold mb-2">Generated Scene</h3>
-      <div className="relative w-full h-64 md:h-96">
+      <div className="relative w-full h-96 bg-gray-100 rounded-lg overflow-hidden">
         <Image
           src={`http://localhost:3001${currentImage}`}
           alt="Generated scene"
           fill
-          className="rounded-lg object-contain"
+          className="object-contain"
         />
       </div>
     </div>
   );
-};
-
-export default ImageDisplay;
+}

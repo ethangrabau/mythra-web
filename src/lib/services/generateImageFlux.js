@@ -1,13 +1,10 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import WebSocket from 'ws';
 
+const rootDir = process.cwd();
 const API_KEY = process.env.BFL_API_KEY;
-
-// Resolve __dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export const generateImageFlux = async (prompt, sessionId, width = 1024, height = 768) => {
   const promptPrefix =
@@ -16,7 +13,7 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
 
   try {
     // Ensure the images directory exists
-    const dirPath = path.join(__dirname, '..', '..', 'generated_images');
+    const dirPath = path.join(rootDir, 'generated_images');
     console.log('Checking images directory:', dirPath);
     if (!fs.existsSync(dirPath)) {
       console.log('Creating images directory...');
@@ -47,7 +44,7 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
     // Step 2: Poll for the result
     let imageUrl = null;
     let attempts = 0;
-    const maxAttempts = 60; // 30 seconds maximum wait time
+    const maxAttempts = 60;
     
     while (!imageUrl && attempts < maxAttempts) {
       console.log(`Waiting for image generation... Attempt ${attempts + 1}/${maxAttempts}`);
@@ -84,35 +81,35 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
     console.log('Downloading image...');
     const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
     
-    // Create a filename with session ID and timestamp
     const timestamp = Date.now();
     const filename = `${sessionId}-${timestamp}.png`;
     const imagePath = path.join(dirPath, filename);
     
-    // Save the image
     console.log(`Saving image to: ${imagePath}`);
     await fs.promises.writeFile(imagePath, imageResponse.data);
     console.log('Image saved successfully');
 
-    // Notify the WebSocket server about the new image
+    // Notify WebSocket server
     try {
       console.log('Notifying WebSocket server...');
       const ws = new WebSocket('ws://localhost:8080');
-      await new Promise((resolve) => ws.on('open', resolve));
       
-      const message = {
-        type: 'newImage',
-        sessionId: sessionId,
-        imagePath: `/api/images/${filename}`
-      };
-      console.log('Sending WebSocket message:', message);
-      
-      ws.send(JSON.stringify(message));
-      ws.close();
-      console.log('WebSocket notification sent');
+      await new Promise((resolve) => {
+        ws.onopen = () => {
+          const message = {
+            type: 'newImage',
+            sessionId: sessionId,
+            imagePath: `/api/images/${filename}`
+          };
+          console.log('Sending WebSocket message:', message);
+          ws.send(JSON.stringify(message));
+          ws.close();
+          console.log('WebSocket notification sent');
+          resolve();
+        };
+      });
     } catch (wsError) {
       console.error('Error notifying WebSocket server:', wsError);
-      // Continue even if WebSocket notification fails
     }
 
     return `/api/images/${filename}`;
@@ -123,7 +120,7 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
   }
 };
 
-// Test the function
+// Test function
 if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     const testPrompt = `Todd, the radiant Asmere Paladin, stands tall in his celestial armor...`;

@@ -1,4 +1,3 @@
-// next.config.ts
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
@@ -8,6 +7,16 @@ const config: NextConfig = {
       'bufferutil': 'commonjs bufferutil',
     });
     return config;
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/api/images/**',
+      },
+    ],
   },
   async rewrites() {
     return [

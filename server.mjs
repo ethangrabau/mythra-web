@@ -406,21 +406,20 @@ app.use('/api/images', express.static(IMAGES_DIR));
 app.get('/api/images/latest/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    console.log('Checking for images for session:', sessionId);
+    console.log('Looking up images for session:', sessionId);
     const files = await fs.readdir(IMAGES_DIR);
-    console.log('Available images:', files);
+    console.log('All available images:', files);
     
-    // Filter files for this session and sort by timestamp
-    const sessionImages = files
-      .filter(file => file.startsWith(sessionId))
-      .sort((a, b) => {
-        const timeA = parseInt(a.split('-')[1]);
-        const timeB = parseInt(b.split('-')[1]);
-        return timeB - timeA;
-      });
+    // Look for images that start with either sessionId
+    const normalizedSessionId = sessionId.replace(/-[^-]+$/, ''); // Remove the random suffix
+    console.log('Normalized session ID:', normalizedSessionId);
+    
+    const sessionImages = files.filter(file => file.startsWith(normalizedSessionId));
+    console.log('Matching images:', sessionImages);
 
     if (sessionImages.length > 0) {
-      res.json({ imagePath: `/api/images/${sessionImages[0]}` });
+      const latestImage = sessionImages[sessionImages.length - 1]; // Get the most recent
+      res.json({ imagePath: `/api/images/${latestImage}` });
     } else {
       res.status(404).json({ error: 'No images found for this session' });
     }
