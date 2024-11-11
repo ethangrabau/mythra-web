@@ -1,7 +1,4 @@
 import mongoose from 'mongoose';
-import { loadEnv } from './utils/env';
-
-loadEnv();
 
 const MONGODB_URI = process.env.MONGODB_URI;
 

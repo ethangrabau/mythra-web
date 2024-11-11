@@ -1,12 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { loadEnv } from './env';
-
-console.log('Current working directory:', process.cwd());
-console.log('Looking for .env.local at:', path.resolve(process.cwd(), '.env.local'));
-
-//Load .env.local file
-loadEnv();
+import { connectToDatabase } from './dbSeederConnect.js';
 
 // Log all environment variables (be careful with sensitive info)
 console.log('Loaded environment variables:', {
@@ -37,7 +31,7 @@ async function clearDatabase() {
 async function seedDatabase() {
   try {
     validateEnvironment();
-    await dbConnect();
+    await connectToDatabase();
     await clearDatabase();
 
     // Create Players
