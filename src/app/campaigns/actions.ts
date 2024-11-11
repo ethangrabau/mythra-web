@@ -5,7 +5,7 @@ import dbConnect from '@/lib/db';
 import { Campaign } from '@/lib/models/Campaign';
 
 export async function getCampaigns() {
-  const campaigns = await Campaign.find().populate('dmId');
+  const campaigns = await Campaign.find();
   return JSON.parse(JSON.stringify(campaigns));
 }
 
