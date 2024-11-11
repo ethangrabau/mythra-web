@@ -2,15 +2,29 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Plus, List } from 'lucide-react';
 import { cn } from '@/lib/utils/styleUtils';
+import { Grid, Plus, Filter } from 'lucide-react';
 
 export function CampaignNav() {
   const pathname = usePathname();
 
   const links = [
-    { href: '/campaigns', label: 'All Campaigns', icon: List, exact: true },
-    { href: '/campaigns/create', label: 'Create Campaign', icon: Plus },
+    {
+      href: '/campaigns',
+      label: 'All Campaigns',
+      icon: Grid,
+      exact: true,
+    },
+    {
+      href: '/campaigns/create',
+      label: 'Create Campaign',
+      icon: Plus,
+    },
+    {
+      href: '/campaigns/filtered',
+      label: 'Filter Campaigns',
+      icon: Filter,
+    },
   ];
 
   return (
@@ -24,7 +38,7 @@ export function CampaignNav() {
             href={href}
             className={cn(
               'flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors',
-              isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+              isActive ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-100'
             )}>
             <Icon className='h-4 w-4' />
             <span>{label}</span>
