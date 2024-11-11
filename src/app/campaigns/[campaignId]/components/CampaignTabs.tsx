@@ -20,19 +20,19 @@ export function CampaignTabs({ campaignId }: { campaignId: string }) {
   return (
     <nav className='border-b border-gray-200'>
       <div className='flex space-x-8'>
-        {tabs.map(({ href, label, exact }) => {
-          const isActive = exact ? pathname === href : pathname.startsWith(href);
+        {tabs.map(({ href, label, icon: Icon }) => {
+          const isActive = pathname === href;
 
           return (
             <Link
               key={href}
               href={href}
               className={cn(
-                'py-4 px-1 border-b-2 text-sm font-medium transition-colors',
-                isActive
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                'flex items-center gap-2 py-4 px-1 border-b-2 text-sm font-medium',
+                'transition-colors hover:text-gray-900',
+                isActive ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300'
               )}>
+              <Icon className='h-4 w-4' />
               {label}
             </Link>
           );
