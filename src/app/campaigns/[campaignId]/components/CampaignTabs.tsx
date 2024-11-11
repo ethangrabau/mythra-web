@@ -3,16 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/styleUtils';
+import { LayoutDashboard, CalendarDays, Users, ScrollText, MapPin, MessageSquare } from 'lucide-react';
 
 export function CampaignTabs({ campaignId }: { campaignId: string }) {
   const pathname = usePathname();
 
   const tabs = [
-    { href: `/campaigns/${campaignId}`, label: 'Overview', exact: true },
-    { href: `/campaigns/${campaignId}/sessions`, label: 'Sessions' },
-    { href: `/campaigns/${campaignId}/characters`, label: 'Characters' },
-    { href: `/campaigns/${campaignId}/quests`, label: 'Quests' },
-    { href: `/campaigns/${campaignId}/notes`, label: 'Notes' },
+    { href: `/campaigns/${campaignId}`, label: 'Overview', exact: true, icon: LayoutDashboard },
+    { href: `/campaigns/${campaignId}/sessions`, label: 'Sessions', icon: CalendarDays },
+    { href: `/campaigns/${campaignId}/characters`, label: 'Characters', icon: Users },
+    { href: `/campaigns/${campaignId}/quests`, label: 'Quests', icon: ScrollText },
+    { href: `/campaigns/${campaignId}/locations`, label: 'Locations', icon: MapPin },
+    { href: `/campaigns/${campaignId}/notes`, label: 'Notes', icon: MessageSquare },
   ];
 
   return (

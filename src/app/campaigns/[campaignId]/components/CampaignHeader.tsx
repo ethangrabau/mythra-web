@@ -1,7 +1,7 @@
 import { D20Icon } from '@/components/icons/D20Icon';
 import { Badge } from '@/components/ui/badge';
 import { ButtonVar } from '@/components/ui/buttonvar';
-import { CalendarDays, Users, Dice2 } from 'lucide-react';
+import { CalendarDays, Users } from 'lucide-react';
 
 type CampaignHeaderProps = {
   campaign: {
