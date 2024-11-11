@@ -1,6 +1,12 @@
-'use client';
+import { Suspense } from 'react';
+import { CampaignNav } from './components/CampaignNav';
+// import { LoadingSpinner } from '@/components/LoadingSpinner';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Plus, List } from 'lucide-react';
-import { cn } from '@/lib/utils/styleUtils';
+export default function CampaignLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className='container mx-auto px-4 py-8'>
+      <CampaignNav />
+      <main>{children}</main>
+    </div>
+  );
+}
