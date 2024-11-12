@@ -3,8 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
 import { generateMemoryPrompt } from './src/lib/services/memoryPrompt.js';
-import { generateImagePrompt } from './src/lib/services/generateImagePrompt.js'; // Assuming this exists
-import { generateImageFlux } from './src/lib/services/generateImageFlux.js'; // Flux API handler
+import { generateImagePrompt } from './src/lib/services/generateImagePrompt.js';
+import { generateImageFlux } from './src/lib/services/generateImageFlux.js';
 
 // Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -14,7 +14,6 @@ const __dirname = path.dirname(__filename);
 const openai = new OpenAI(); // Automatically uses OPENAI_API_KEY
 
 // File paths
-const sessionId = process.env.TEST_MODE ? 'session-test' : 'session-12345';
 const transcriptionDir = path.join(__dirname, 'metadata');
 const memoryFilePath = path.join(transcriptionDir, 'memory-log.txt');
 const imagesDirPath = path.join(__dirname, 'generated_images');
@@ -55,8 +54,8 @@ const saveMemory = (memoryUpdate) => {
   }
 };
 
-// LLM Call for memory updates
-const callLLM = async (transcription) => {
+// Call LLM for memory updates
+const updateMemory = async (transcription) => {
   const prompt = generateMemoryPrompt(transcription, memory);
   try {
     console.log('Calling LLM for memory updates...');
@@ -67,71 +66,48 @@ const callLLM = async (transcription) => {
 
     const updatedMemory = response.choices[0]?.message?.content;
     if (!updatedMemory) throw new Error('Empty LLM response.');
-    console.log('LLM Response:', updatedMemory);
-    return updatedMemory; // Return full memory as-is
+
+    console.log('Memory update received:', updatedMemory);
+    saveMemory(updatedMemory);
+    memory = { ...memory, raw: updatedMemory };
+    console.log('Memory updated successfully.');
   } catch (error) {
-    console.error('Error during LLM call:', error);
-    return null;
+    console.error('Error during memory update:', error);
   }
 };
 
-// LLM Call for image generation prompts
-const callImagePromptLLM = async (newText, recentActivity) => {
+// Call LLM for image prompts
+const generateImage = async (newText, recentActivity, sessionId) => {
   try {
-    console.log('Calling LLM for image prompt...');
+    console.log('Generating image prompt...');
     const imagePrompt = await generateImagePrompt(newText, recentActivity, memory);
-
     if (!imagePrompt) {
-      console.log('No image prompt generated as per LLM response.');
-      return null; // No image needed
+      console.log('No image prompt generated.');
+      return;
     }
 
-    console.log('Image Prompt LLM Response:', imagePrompt);
-    return imagePrompt; // Return the valid image prompt
-  } catch (error) {
-    console.error('Error generating image prompt:', error.message);
-    return null; // Gracefully handle errors by returning null
-  }
-};
-
-// Process transcription
-const processNewTranscription = async (newText, sessionId) => {
-  console.log(`Processing transcription chunk for session ${sessionId}: ${newText}`);
-
-  // Step 1: Generate Image Prompt and Trigger Image Generation
-  const recentActivity = memory.processedChunks.slice(-5).join(' '); // Pull recent context
-  const imagePrompt = await callImagePromptLLM(newText, recentActivity);
-
-  console.log('Image generation decision:', imagePrompt === null ? 'No image needed' : 'Generate image');
-  if (imagePrompt) {
-    console.log('Final image prompt:', imagePrompt);
-    console.log('Generating image with Flux...');
+    console.log('Image prompt received:', imagePrompt);
     const imagePath = await generateImageFlux(imagePrompt, sessionId);
-
     if (imagePath) {
       console.log(`Image generated and saved at: ${imagePath}`);
     } else {
       console.warn('Image generation failed.');
     }
-  } else {
-    console.log('No image generated as per LLM response.');
+  } catch (error) {
+    console.error('Error generating image:', error);
   }
+};
 
-  // Step 2: Call LLM for Memory Updates (after starting image generation)
-  const updatedMemory = await callLLM(newText);
+// Process transcription
+const processTranscription = async (newText, sessionId) => {
+  console.log(`Processing transcription for session ${sessionId}: ${newText}`);
+  const recentActivity = memory.processedChunks.slice(-5).join(' ');
 
-  if (updatedMemory) {
-    console.log('Memory update received from LLM:', updatedMemory);
-    try {
-      saveMemory(updatedMemory);
-      memory = { ...memory, raw: updatedMemory };
-      console.log('Memory updated successfully.');
-    } catch (error) {
-      console.error('Error saving raw memory update:', error);
-    }
-  } else {
-    console.warn('No memory update received from LLM.');
-  }
+  // Immediately update memory
+  updateMemory(newText);
+
+  // Start image generation in parallel
+  generateImage(newText, recentActivity, sessionId);
 
   // Mark the chunk as processed
   memory.processedChunks.push(newText);
@@ -159,10 +135,10 @@ const startFileWatcher = () => {
 
           // Only process new text
           if (text && !memory.processedChunks.includes(text)) {
-            console.log('Found new text to process:', text);
-            processNewTranscription(text, filename.replace('-transcription.json', ''));
+            console.log('New transcription found:', text);
+            processTranscription(text, filename.replace('-transcription.json', ''));
           } else {
-            console.log('No new text to process for file:', filename);
+            console.log('No new transcription to process for file:', filename);
           }
         } catch (err) {
           console.error('Error parsing transcription file:', err);
