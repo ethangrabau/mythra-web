@@ -1,9 +1,16 @@
+// /campaigns/[campaignId]/page.tsx
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Users, CalendarDays, ScrollText, MapPin, Trophy, Clock } from 'lucide-react';
 import { getCampaign } from './actions';
+import { notFound } from 'next/navigation';
+// import { CampaignOverviewContent } from './components/CampaignOverviewContent';
 
 export default async function CampaignPage({ params }: { params: { campaignId: string } }) {
   const campaign = await getCampaign(params.campaignId);
+  if (!campaign) {
+    return notFound();
+  }
 
   const stats = [
     {
@@ -11,21 +18,21 @@ export default async function CampaignPage({ params }: { params: { campaignId: s
       value: campaign.players.filter((p: any) => p.isActive).length,
       icon: Users,
     },
-    {
-      label: 'Sessions Played',
-      value: campaign.sessions?.length || 0,
-      icon: CalendarDays,
-    },
-    {
-      label: 'Active Quests',
-      value: campaign.quests.activeQuests.length,
-      icon: ScrollText,
-    },
-    {
-      label: 'Locations Discovered',
-      value: campaign.locations?.length || 0,
-      icon: MapPin,
-    },
+    // {
+    //   label: 'Sessions Played',
+    //   value: campaign.sessions?.length || 0,
+    //   icon: CalendarDays,
+    // },
+    // {
+    //   label: 'Active Quests',
+    //   value: campaign.quests.activeQuests.length,
+    //   icon: ScrollText,
+    // },
+    // {
+    //   label: 'Locations Discovered',
+    //   value: campaign.locations?.length || 0,
+    //   icon: MapPin,
+    // },
   ];
 
   return (
@@ -48,30 +55,32 @@ export default async function CampaignPage({ params }: { params: { campaignId: s
           </Card>
         ))}
       </div>
-
+      {/* <CampaignOverviewContent campaign={campaign} /> */}
       {/* Recent Activity and Next Session */}
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <Clock className='h-5 w-5' />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='space-y-4'>
-              {campaign.sessions?.slice(0, 3).map((session: any) => (
-                <div key={session._id} className='flex items-start space-x-3 p-3 bg-gray-50 rounded-lg'>
-                  <CalendarDays className='h-5 w-5 text-gray-500 mt-0.5' />
-                  <div>
-                    <p className='font-medium text-gray-900'>Session {session.sessionNumber}</p>
-                    <p className='text-sm text-gray-500'>{session.summary}</p>
+      {/* <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+        {
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <Clock className='h-5 w-5' />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className='space-y-4'>
+                {campaign.sessions?.slice(0, 3).map((session: any) => (
+                  <div key={session._id} className='flex items-start space-x-3 p-3 bg-gray-50 rounded-lg'>
+                    <CalendarDays className='h-5 w-5 text-gray-500 mt-0.5' />
+                    <div>
+                      <p className='font-medium text-gray-900'>Session {session.sessionNumber}</p>
+                      <p className='text-sm text-gray-500'>{session.summary}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        }
 
         <Card>
           <CardHeader>
@@ -95,21 +104,23 @@ export default async function CampaignPage({ params }: { params: { campaignId: s
                 <p className='text-sm text-gray-500'>Started at level {campaign.level.start}</p>
               </div>
 
-              <div className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'>
-                <div className='flex items-center space-x-3'>
-                  <div className='p-2 bg-green-100 rounded-full'>
-                    <ScrollText className='h-4 w-4 text-green-600' />
-                  </div>
-                  <div>
-                    <p className='font-medium text-gray-900'>Quests Completed</p>
-                    <p className='text-sm text-gray-500'>{campaign.quests.completedQuests.length} quests</p>
+              {
+                <div className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='p-2 bg-green-100 rounded-full'>
+                      <ScrollText className='h-4 w-4 text-green-600' />
+                    </div>
+                    <div>
+                      <p className='font-medium text-gray-900'>Quests Completed</p>
+                      <p className='text-sm text-gray-500'>{campaign.quests.completedQuests.length} quests</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              }
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -26,22 +26,31 @@ interface CampaignData {
 }
 
 export default async function CampaignLayout({ children, params }: CampaignLayoutProps) {
+  if (!params?.campaignId) {
+    return notFound();
+  }
+
   let campaign;
 
   try {
     const data = await getCampaign(params.campaignId);
+    console.log('Campaign loaded in /campaigns/:campaignId/layout.tsx');
     campaign = data as CampaignData;
+    console.log(campaign);
+
+    if (!campaign) return notFound();
   } catch (error) {
     return notFound();
   }
 
   return (
     <div className='space-y-6'>
-      <Suspense fallback={<LoadingSpinner />}>
+      {/* <Suspense fallback={<LoadingSpinner />}>
         <CampaignHeader campaign={campaign} />
-      </Suspense>
+      </Suspense> */}
 
-      <CampaignTabs campaignId={params.campaignId} />
+      {/* <CampaignTabs campaignId={params.campaignId.toString()} /> */}
+      <CampaignTabs />
 
       <div className='bg-white rounded-lg shadow'>{children}</div>
     </div>

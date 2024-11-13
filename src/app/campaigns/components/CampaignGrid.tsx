@@ -4,7 +4,7 @@ import { CalendarDays, Users } from 'lucide-react';
 import Link from 'next/link';
 import { D20Icon } from '@/components/icons/D20Icon';
 
-interface Campaign {
+type CampaignProps = {
   _id: string;
   name: string;
   description: string;
@@ -18,9 +18,9 @@ interface Campaign {
     displayName: string;
   };
   tags: string[];
-}
+};
 
-export default function CampaignGrid({ campaigns }: { campaigns: Campaign[] }) {
+export default function CampaignGrid({ campaigns }: { campaigns: CampaignProps[] }) {
   if (campaigns.length === 0) {
     return (
       <div className='text-center py-12'>

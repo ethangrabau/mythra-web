@@ -1,3 +1,4 @@
+// /campaigns/[campaignId]/actions.ts
 'use server';
 
 import { Campaign, ICampaign } from '@/lib/models/Campaign';
@@ -11,6 +12,10 @@ export async function getCampaign(campaignId: string) {
     }
 
     const campaign = await Campaign.findById(campaignId);
+    // .populate('dmId', 'username email')
+    // .populate('players.playerId', 'username email')
+    // .populate('players.characterId', 'name class race')
+    // .lean(); // Convert to plain JavaScript object
 
     if (!campaign) {
       throw new Error('Campaign not found');

@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils/styleUtils';
 import { LayoutDashboard, CalendarDays, Users, ScrollText, MapPin, MessageSquare } from 'lucide-react';
 
-export function CampaignTabs({ campaignId }: { campaignId: string }) {
+// export function CampaignTabs({ campaignId }: { campaignId: string }) {
+export function CampaignTabs() {
   const pathname = usePathname();
+  const params = useParams();
+  const campaignId = params.campaignId as string;
 
   const tabs = [
     { href: `/campaigns/${campaignId}`, label: 'Overview', exact: true, icon: LayoutDashboard },

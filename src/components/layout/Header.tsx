@@ -34,7 +34,7 @@ export default function Header({ isRecording, onNewSession, onStopRecording }: H
               Recaps
             </a>
             <a
-              href='#'
+              href='/campaigns'
               className='text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-2'>
               <Book className='w-4 h-4' />
               Campaigns
