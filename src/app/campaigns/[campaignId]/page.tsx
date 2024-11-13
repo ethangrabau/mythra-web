@@ -6,7 +6,13 @@ import { getCampaign } from './actions';
 import { notFound } from 'next/navigation';
 // import { CampaignOverviewContent } from './components/CampaignOverviewContent';
 
-export default async function CampaignPage({ params }: { params: { campaignId: string } }) {
+type CampaignPageProps = {
+  params: Promise<{ campaignId: string }> | { campaignId: string };
+};
+
+// export default async function CampaignPage({ params }: { params: { campaignId: string } }) {
+export default async function CampaignPage({ params: paramsPromise }: CampaignPageProps) {
+  const params = await paramsPromise;
   const campaign = await getCampaign(params.campaignId);
   if (!campaign) {
     return notFound();

@@ -8,7 +8,8 @@ import { getCampaign } from './actions';
 
 type CampaignLayoutProps = {
   children: React.ReactNode;
-  params: { campaignId: string };
+  params: Promise<{ campaignId: string }> | { campaignId: string };
+  // params: { campaignId: string };
 };
 
 interface CampaignData {
@@ -25,7 +26,9 @@ interface CampaignData {
   };
 }
 
-export default async function CampaignLayout({ children, params }: CampaignLayoutProps) {
+export default async function CampaignLayout({ children, params: paramsPromise }: CampaignLayoutProps) {
+  // export default async function CampaignLayout({ children, params }: CampaignLayoutProps) {
+  const params = await paramsPromise;
   if (!params?.campaignId) {
     return notFound();
   }
@@ -36,7 +39,7 @@ export default async function CampaignLayout({ children, params }: CampaignLayou
     const data = await getCampaign(params.campaignId);
     console.log('Campaign loaded in /campaigns/:campaignId/layout.tsx');
     campaign = data as CampaignData;
-    console.log(campaign);
+    // console.log(campaign);
 
     if (!campaign) return notFound();
   } catch (error) {
