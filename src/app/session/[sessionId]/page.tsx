@@ -1,14 +1,13 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { PlayCircle, StopCircle, Images } from 'lucide-react';
+import { PlayCircle, StopCircle } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 import { useState } from 'react';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 import ImageDisplay from '@/components/ImageDisplay';
+import { cn } from '@/lib/utils/ui';
 
 const SessionPage = () => {
-  const router = useRouter();
   const {
     isRecording,
     startRecording,
@@ -19,6 +18,7 @@ const SessionPage = () => {
     error: hookError,
   } = useAudioRecorder();
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleStartRecording = async () => {
     try {
@@ -40,60 +40,74 @@ const SessionPage = () => {
   };
 
   return (
-    <main className="flex-1 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Session Recording</h2>
-          <p className="text-gray-600 mt-2">Control and manage your D&D session recordings.</p>
+    <main className="h-screen w-full bg-gray-50 overflow-hidden">
+      {/* Error display */}
+      {(error || hookError) && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 rounded-lg bg-red-50 p-4 text-red-700 text-sm">
+          {error || hookError}
         </div>
+      )}
 
-        {(error || hookError) && (
-          <div className="rounded-lg bg-red-50 p-4 text-red-700 text-sm">
-            {error || hookError}
-          </div>
-        )}
+      {/* Main content */}
+      <div className="flex h-full">
+        {/* Transcript panel */}
+        <div className={cn(
+          "transition-all duration-300 ease-in-out",
+          isFullscreen ? "w-0 opacity-0" : "w-1/3 opacity-100"
+        )}>
+          <div className="h-full overflow-auto">
+            <div className="p-4 space-y-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Session Recording</h2>
+                <p className="text-gray-600 mt-2">
+                  Control and manage your D&D session recordings.
+                </p>
+              </div>
 
-        <div className="space-y-4">
-          {!isRecording ? (
-            <button
-              onClick={handleStartRecording}
-              disabled={!isConnected}
-              className="p-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all"
-            >
-              <PlayCircle className="w-6 h-6 inline-block" />
-              Start Recording
-            </button>
-          ) : (
-            <button
-              onClick={handleStopRecording}
-              className="p-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all"
-            >
-              <StopCircle className="w-6 h-6 inline-block" />
-              Stop Recording
-            </button>
-          )}
-        </div>
+              {/* Recording controls */}
+              <div>
+                {!isRecording ? (
+                  <button
+                    onClick={handleStartRecording}
+                    disabled={!isConnected}
+                    className="p-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all"
+                  >
+                    <PlayCircle className="w-6 h-6 inline-block mr-2" />
+                    Start Recording
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStopRecording}
+                    className="p-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all"
+                  >
+                    <StopCircle className="w-6 h-6 inline-block mr-2" />
+                    Stop Recording
+                  </button>
+                )}
+              </div>
 
-        <TranscriptionViewer
-          sessionId={sessionData?.sessionId || ''}
-          isRecording={isRecording}
-          sessionActive={!!sessionData}
-          transcriptions={transcriptions}
-        />
-
-        <ImageDisplay sessionId={sessionData?.sessionId || ''} />
-
-        <div>
-          <button
-            onClick={() => router.push('/recaps')}
-            className="p-8 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] text-left group"
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <Images className="w-6 h-6 text-purple-600 group-hover:scale-110 transition-transform" />
-              <h3 className="text-lg font-semibold text-gray-800">View Recaps</h3>
+              {/* Transcription viewer */}
+              <TranscriptionViewer
+                sessionId={sessionData?.sessionId || ''}
+                isRecording={isRecording}
+                sessionActive={!!sessionData}
+                transcriptions={transcriptions}
+              />
             </div>
-            <p className="text-sm text-gray-600">Browse through past session recaps and generated imagery.</p>
-          </button>
+          </div>
+        </div>
+
+        {/* Image display */}
+        <div className={cn(
+          "transition-all duration-300 ease-in-out",
+          isFullscreen ? "w-full" : "w-2/3"
+        )}>
+          <ImageDisplay
+            sessionId={sessionData?.sessionId || ''}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+            isRecording={isRecording}
+          />
         </div>
       </div>
     </main>

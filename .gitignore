@@ -42,3 +42,6 @@ next-env.d.ts
 #audio files
 *.webm
 /metadata
+
+#image files
+*.png
