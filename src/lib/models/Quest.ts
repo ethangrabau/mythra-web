@@ -7,7 +7,7 @@ interface IQuest extends Document {
   description: string;
   type: 'main' | 'side' | 'character' | 'faction';
   status: 'not_started' | 'in_progress' | 'completed' | 'failed' | 'abandoned';
-  difficulty: 'trivial' | 'easy' | 'medium' | 'hard' | 'epic';
+  difficulty: 'trivial' | 'easy' | 'medium' | 'hard' | 'very_hard' | 'epic';
   giver: {
     name: string;
     type: 'npc' | 'faction' | 'item' | 'event';
@@ -91,7 +91,7 @@ const QuestSchema = new Schema<IQuest>(
     difficulty: {
       type: String,
       required: true,
-      enum: ['trivial', 'easy', 'medium', 'hard', 'epic'],
+      enum: ['trivial', 'easy', 'medium', 'hard', 'very_hard', 'epic'],
       default: 'medium',
     },
     giver: {

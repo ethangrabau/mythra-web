@@ -22,6 +22,15 @@ export interface ICampaign extends Document {
   nextSessionDate?: Date;
   tags: string[];
   homebrewRules?: string[];
+  quests: {
+    mainQuests: Types.ObjectId[];
+    sideQuests: Types.ObjectId[];
+    characterQuests: Types.ObjectId[];
+    factionQuests: Types.ObjectId[];
+    activeQuests: Types.ObjectId[];
+    completedQuests: Types.ObjectId[];
+    failedQuests: Types.ObjectId[];
+  };
 }
 
 // Schemas
@@ -54,6 +63,15 @@ const CampaignSchema = new Schema<ICampaign>(
     nextSessionDate: Date,
     tags: [String],
     homebrewRules: [String],
+    quests: {
+      mainQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
+      sideQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
+      characterQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
+      factionQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
+      activeQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
+      completedQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
+      failedQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
+    },
   },
   { timestamps: true }
 ); // This adds createdAt and updatedAt automatically
