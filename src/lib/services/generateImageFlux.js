@@ -2,16 +2,32 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import WebSocket from 'ws';
+import { normalizeSessionId } from '../utils/session.js';
+
 
 const rootDir = process.cwd();
 const API_KEY = process.env.BFL_API_KEY;
 
 export const generateImageFlux = async (prompt, sessionId, width = 1024, height = 768) => {
+
+  const normalizedSessionId = normalizeSessionId(sessionId);
+  console.log('Image generation session ID:', {
+    original: sessionId,
+    normalized: normalizedSessionId
+  });
+
   const promptPrefix =
     "High-fantasy, photorealistic illustration for a DND campaign. The scene should evoke epic adventure, rich in detail, dramatic lighting, and set in a magical world. The story is about the following: ";
   const fullPrompt = `${promptPrefix}${prompt}`;
 
   try {
+    // Normalize the session ID
+    const normalizedSessionId = normalizeSessionId(sessionId);
+    console.log('Session ID handling:', {
+      original: sessionId,
+      normalized: normalizedSessionId
+    });
+
     // Ensure the images directory exists
     const dirPath = path.join(rootDir, 'generated_images');
     console.log('Checking images directory:', dirPath);
@@ -82,14 +98,14 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
     const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
     
     const timestamp = Date.now();
-    const filename = `${sessionId}-${timestamp}.png`;
+    const filename = `${normalizedSessionId}-${timestamp}.png`;
     const imagePath = path.join(dirPath, filename);
     
     console.log(`Saving image to: ${imagePath}`);
     await fs.promises.writeFile(imagePath, imageResponse.data);
     console.log('Image saved successfully');
 
-    // Notify WebSocket server
+    // Notify WebSocket server with normalized session ID
     try {
       console.log('Notifying WebSocket server...');
       const ws = new WebSocket('ws://localhost:8080');
@@ -98,7 +114,7 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
         ws.onopen = () => {
           const message = {
             type: 'newImage',
-            sessionId: sessionId,
+            sessionId: normalizedSessionId, // Use normalized ID here
             imagePath: `/api/images/${filename}`
           };
           console.log('Sending WebSocket message:', message);

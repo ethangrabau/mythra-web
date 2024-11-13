@@ -8,6 +8,7 @@ import TranscriptionService from './src/lib/services/transcription.js';
 import express from 'express';  // Keep only this one
 import cors from 'cors';  // Add this if not already present
 import { fileWatcher } from './file-watcher.js';
+import { normalizeSessionId } from './src/lib/utils/session.js';
 
 // Get the current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -275,67 +276,73 @@ server.on('connection', (socket) => {
             console.log('Received control message:', message);
 
             switch (message.type) {
-                case 'command':
-                    if (message.payload.action === 'start') {
-                        if (currentSession) {
-                            throw new Error('Session already in progress');
-                        }
+              case 'command':
+                  if (message.payload.action === 'start') {
+                      if (currentSession) {
+                          throw new Error('Session already in progress');
+                      }
 
-                        const sessionId = `session-${Date.now()}`;
-                        console.log('Starting new session:', sessionId);
+                      // Use the sessionId from the message if provided, otherwise generate new one
+                      const sessionId = message.payload.sessionId || `session-${Date.now()}`;
+                      console.log('Starting new session:', sessionId);
 
-                        // Create session directory
-                        const sessionDir = join(AUDIO_DIR, sessionId);
-                        await fs.mkdir(sessionDir, { recursive: true });
+                      // Create session directory
+                      const sessionDir = join(AUDIO_DIR, sessionId);
+                      await fs.mkdir(sessionDir, { recursive: true });
 
-                        // Initialize new session
-                        currentSession = new AudioSession(sessionId, socket);
-                        activeSessions.set(sessionId, currentSession);
+                      // Initialize new session with the same ID
+                      currentSession = new AudioSession(sessionId, socket);
+                      activeSessions.set(sessionId, currentSession);
 
-                        socket.send(JSON.stringify({
-                            type: 'status',
-                            payload: { status: 'initialized' },
-                            sessionId,
-                            timestamp: Date.now()
-                        }));
-                    } else if (message.payload.action === 'stop') {
-                        if (!currentSession) {
-                            throw new Error('No active session to stop');
-                        }
+                      socket.send(JSON.stringify({
+                          type: 'status',
+                          payload: { 
+                              status: 'initialized',
+                              sessionId: sessionId  // Send back the session ID
+                          },
+                          sessionId,
+                          timestamp: Date.now()
+                      }));
+                  } else if (message.payload.action === 'stop') {
+                      // Rest of your existing 'stop' logic
+                      if (!currentSession) {
+                          throw new Error('No active session to stop');
+                      }
 
-                        console.log('Stopping recording for session:', currentSession.sessionId);
-                        const result = await currentSession.finalize();
+                      console.log('Stopping recording for session:', currentSession.sessionId);
+                      const result = await currentSession.finalize();
 
-                        socket.send(JSON.stringify({
-                            type: 'recording_complete',
-                            payload: {
-                                path: result.path,
-                                duration: currentSession.metadata.totalDuration,
-                                size: currentSession.metadata.totalSize,
-                                transcription: result.transcription
-                            },
-                            sessionId: currentSession.sessionId,
-                            timestamp: Date.now()
-                        }));
+                      socket.send(JSON.stringify({
+                          type: 'recording_complete',
+                          payload: {
+                              path: result.path,
+                              duration: currentSession.metadata.totalDuration,
+                              size: currentSession.metadata.totalSize,
+                              transcription: result.transcription
+                          },
+                          sessionId: currentSession.sessionId,
+                          timestamp: Date.now()
+                      }));
 
-                        // Do not set `currentSession = null` here.
-                    } else if (message.payload.action === 'end') { // Add new "end" command here
-                        if (!currentSession) {
-                            throw new Error('No active session to end');
-                        }
+                      // Do not set `currentSession = null` here.
+                  } else if (message.payload.action === 'end') {
+                      // Rest of your existing 'end' logic
+                      if (!currentSession) {
+                          throw new Error('No active session to end');
+                      }
 
-                        console.log('Ending session:', currentSession.sessionId);
-                        await currentSession.finalize();
-                        activeSessions.delete(currentSession.sessionId); // Clean up the session.
-                        currentSession = null;
+                      console.log('Ending session:', currentSession.sessionId);
+                      await currentSession.finalize();
+                      activeSessions.delete(currentSession.sessionId);
+                      currentSession = null;
 
-                        socket.send(JSON.stringify({
-                            type: 'session_ended',
-                            sessionId: message.payload.sessionId,
-                            timestamp: Date.now()
-                        }));
-                    }
-                    break;
+                      socket.send(JSON.stringify({
+                          type: 'session_ended',
+                          sessionId: message.payload.sessionId,
+                          timestamp: Date.now()
+                      }));
+                  }
+                  break;
 
                 default:
                     console.warn('Unknown message type:', message.type);
@@ -406,25 +413,33 @@ app.use('/api/images', express.static(IMAGES_DIR));
 app.get('/api/images/latest/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    console.log('Looking up images for session:', sessionId);
+    console.log('Image request:', {
+      requestedId: sessionId,
+      normalizedId: normalizeSessionId(sessionId)
+    });
+    
     const files = await fs.readdir(IMAGES_DIR);
-    console.log('All available images:', files);
+    const normalizedRequestId = normalizeSessionId(sessionId);
     
-    // Look for images that start with either sessionId
-    const normalizedSessionId = sessionId.replace(/-[^-]+$/, ''); // Remove the random suffix
-    console.log('Normalized session ID:', normalizedSessionId);
-    
-    const sessionImages = files.filter(file => file.startsWith(normalizedSessionId));
-    console.log('Matching images:', sessionImages);
+    const sessionImages = files.filter(file => {
+      const normalizedFileId = normalizeSessionId(file.split('-')[0] + '-' + file.split('-')[1]);
+      return normalizedFileId === normalizedRequestId;
+    });
+
+    console.log('Image matching:', {
+      normalizedRequestId,
+      foundImages: sessionImages
+    });
 
     if (sessionImages.length > 0) {
-      const latestImage = sessionImages[sessionImages.length - 1]; // Get the most recent
+      // Sort by timestamp to get the latest
+      const latestImage = sessionImages.sort().reverse()[0];
       res.json({ imagePath: `/api/images/${latestImage}` });
     } else {
       res.status(404).json({ error: 'No images found for this session' });
     }
   } catch (error) {
-    console.error('Error fetching latest image:', error);
+    console.error('Error in image endpoint:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

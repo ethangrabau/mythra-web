@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import { generateMemoryPrompt } from './src/lib/services/memoryPrompt.js';
 import { generateImagePrompt } from './src/lib/services/generateImagePrompt.js';
 import { generateImageFlux } from './src/lib/services/generateImageFlux.js';
+import { normalizeSessionId } from './src/lib/utils/session.js';
 
 // Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -99,15 +100,21 @@ const generateImage = async (newText, recentActivity, sessionId) => {
 };
 
 // Process transcription
-const processTranscription = async (newText, sessionId) => {
-  console.log(`Processing transcription for session ${sessionId}: ${newText}`);
+const processTranscription = async (newText, rawSessionId) => {
+  const normalizedSessionId = normalizeSessionId(rawSessionId);
+  console.log('Processing transcription:', {
+    rawSessionId,
+    normalizedSessionId,
+    textLength: newText.length
+  });
+  
   const recentActivity = memory.processedChunks.slice(-5).join(' ');
 
-  // Immediately update memory
+  // Update memory
   updateMemory(newText);
 
-  // Start image generation in parallel
-  generateImage(newText, recentActivity, sessionId);
+  // Pass the normalized session ID to image generation
+  generateImage(newText, recentActivity, normalizedSessionId);
 
   // Mark the chunk as processed
   memory.processedChunks.push(newText);
@@ -133,10 +140,16 @@ const startFileWatcher = () => {
           const transcriptionData = JSON.parse(data);
           const text = transcriptionData.text?.trim();
 
+          // Extract the session ID from filename and normalize it
+          const rawSessionId = filename.replace('-transcription.json', '');
+          
           // Only process new text
           if (text && !memory.processedChunks.includes(text)) {
-            console.log('New transcription found:', text);
-            processTranscription(text, filename.replace('-transcription.json', ''));
+            console.log('New transcription found:', {
+              sessionId: rawSessionId,
+              textLength: text.length
+            });
+            processTranscription(text, rawSessionId);
           } else {
             console.log('No new transcription to process for file:', filename);
           }

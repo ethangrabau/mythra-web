@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { normalizeSessionId } from '../utils/session';  // Add this import
+
 
 interface ImageNavigationState {
   currentImageIndex: number;
@@ -26,58 +28,82 @@ export interface UseImageNavigation {
   loading: boolean;
 }
 
-function normalizeSessionId(sessionId: string): string {
-  return sessionId.split('-').slice(0, 2).join('-');
-}
-
-export function useImageNavigation(sessionId: string): UseImageNavigation {
-  const [state, setState] = useState<ImageNavigationState>({
-    currentImageIndex: 0,
-    totalImages: 0,
-    images: [],
-  });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!sessionId) return;
-
-    const fetchImages = async () => {
-      try {
-        setLoading(true);
-        const normalizedId = normalizeSessionId(sessionId);
-        
-        // Fetch all images first
-        const response = await fetch(`http://localhost:3001/api/images`);
-        
-        if (response.ok) {
-          const data = await response.json() as ImageApiResponse;
-          if (Array.isArray(data.images)) {
-            // Filter images that belong to this session
-            const sessionImages = data.images.filter(imagePath => 
-              imagePath.includes(normalizedId)
-            );
-
-            if (sessionImages.length > 0) {
-              console.log('Found images for session:', sessionImages);
+// src/lib/hooks/useImageNavigation.ts
+  
+  export function useImageNavigation(sessionId: string): UseImageNavigation {
+    const [state, setState] = useState<ImageNavigationState>({
+      currentImageIndex: 0,
+      totalImages: 0,
+      images: [],
+    });
+    const [loading, setLoading] = useState(false);
+  
+    useEffect(() => {
+      if (!sessionId) return;
+  
+      const fetchImages = async () => {
+        try {
+          setLoading(true);
+          const normalizedId = normalizeSessionId(sessionId);
+          console.log('Normalized session ID:', {
+            original: sessionId,
+            normalized: normalizedId,
+            timestamp: Date.now()
+          });
+          
+          // First try to get the latest image
+          const latestResponse = await fetch(`http://localhost:3001/api/images/latest/${sessionId}`);
+          console.log('Latest image response:', latestResponse.status);
+          
+          if (latestResponse.ok) {
+            const latestData = await latestResponse.json() as ImageApiResponse;
+            if (latestData.imagePath) {
+              console.log('Found latest image:', latestData.imagePath);
               setState({
-                images: sessionImages,
-                totalImages: sessionImages.length,
-                currentImageIndex: sessionImages.length - 1 // Show most recent by default
+                images: [latestData.imagePath],
+                totalImages: 1,
+                currentImageIndex: 0
               });
             }
+          } else {
+            // Try to find images by checking all images
+            const allResponse = await fetch('http://localhost:3001/api/images');
+            if (allResponse.ok) {
+              const data = await allResponse.json() as ImageApiResponse;
+              if (data.images) {
+                // Find images that match the normalized session ID
+                const normalizedPattern = normalizedId.replace(/session-/, '');
+                const matchingImages = data.images.filter(img => 
+                  img.includes(normalizedPattern)
+                );
+                
+                console.log('Image matching:', {
+                  pattern: normalizedPattern,
+                  found: matchingImages.length,
+                  matches: matchingImages
+                });
+  
+                if (matchingImages.length > 0) {
+                  setState({
+                    images: matchingImages,
+                    totalImages: matchingImages.length,
+                    currentImageIndex: matchingImages.length - 1
+                  });
+                }
+              }
+            }
           }
+        } catch (error) {
+          console.error('Error fetching images:', error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Error fetching images:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchImages();
-    const interval = setInterval(fetchImages, 3000);
-    return () => clearInterval(interval);
-  }, [sessionId]);
+      };
+  
+      fetchImages();
+      const interval = setInterval(fetchImages, 3000);
+      return () => clearInterval(interval);
+    }, [sessionId]);
 
   const goToNextImage = () => {
     setState(prev => ({

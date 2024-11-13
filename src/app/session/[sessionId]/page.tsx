@@ -2,12 +2,16 @@
 
 import { PlayCircle, StopCircle } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 import ImageDisplay from '@/components/ImageDisplay';
 import { cn } from '@/lib/utils/ui';
 
 const SessionPage = () => {
+  const params = useParams();
+  const sessionIdFromUrl = params?.sessionId as string;
+  
   const {
     isRecording,
     startRecording,
@@ -16,9 +20,21 @@ const SessionPage = () => {
     transcriptions,
     isConnected,
     error: hookError,
+    startSession // Add this
   } = useAudioRecorder();
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Connect to existing session when component mounts
+  useEffect(() => {
+    if (sessionIdFromUrl && !sessionData) {
+      console.log('Connecting to existing session:', sessionIdFromUrl);
+      startSession(sessionIdFromUrl).catch(err => {
+        console.error('Error connecting to session:', err);
+        setError('Failed to connect to session');
+      });
+    }
+  }, [sessionIdFromUrl, sessionData, startSession]);
 
   const handleStartRecording = async () => {
     try {
@@ -38,6 +54,16 @@ const SessionPage = () => {
       setError(err instanceof Error ? err.message : 'Failed to stop recording');
     }
   };
+
+  // Add debug logging
+  useEffect(() => {
+    console.log('Session state:', {
+      urlSessionId: sessionIdFromUrl,
+      hookSessionId: sessionData?.sessionId,
+      isRecording,
+      isConnected
+    });
+  }, [sessionIdFromUrl, sessionData?.sessionId, isRecording, isConnected]);
 
   return (
     <main className="h-screen w-full bg-gray-50 overflow-hidden">
