@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Users, CalendarDays, ScrollText, MapPin, Trophy, Clock } from 'lucide-react';
 import { getCampaign } from './actions';
 import { notFound } from 'next/navigation';
+import { CampaignOverviewContent } from './components/CampaignOverviewContent';
 // import { CampaignOverviewContent } from './components/CampaignOverviewContent';
 
 type CampaignPageProps = {
@@ -24,11 +25,11 @@ export default async function CampaignPage({ params: paramsPromise }: CampaignPa
       value: campaign.players.filter((p: any) => p.isActive).length,
       icon: Users,
     },
-    // {
-    //   label: 'Sessions Played',
-    //   value: campaign.sessions?.length || 0,
-    //   icon: CalendarDays,
-    // },
+    {
+      label: 'Sessions Played',
+      value: campaign.sessions?.length || 0,
+      icon: CalendarDays,
+    },
     // {
     //   label: 'Active Quests',
     //   value: campaign.quests.activeQuests.length,
@@ -61,6 +62,7 @@ export default async function CampaignPage({ params: paramsPromise }: CampaignPa
           </Card>
         ))}
       </div>
+      <CampaignOverviewContent campaign={campaign} />
       {/* <CampaignOverviewContent campaign={campaign} /> */}
       {/* Recent Activity and Next Session */}
       {/* <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
