@@ -68,7 +68,25 @@ async function seedDatabase() {
     await secondCampaign.save();
 
     // Create sessions
-    const sessions = await createSessions(campaigns, characters, quests);
+    const allSessions = await createSessions(campaigns, characters, quests);
+    // console.log('🎲 All Sessions');
+    // console.log(allSessions);
+
+    // console.log('-------------------------');
+    // // Add some debug logging
+    // console.log('Debugging session filtering:');
+    // console.log('Campaign 0 ID:', campaigns[0]._id);
+    // console.log('Campaign 1 ID:', campaigns[1]._id);
+    // console.log('First session campaignId:', allSessions[0].campaignId);
+
+    const strahdsSessions = allSessions.filter((session: any) => campaigns[0]._id.equals(session.campaignId));
+    const giantsSessions = allSessions.filter((session: any) => campaigns[1]._id.equals(session.campaignId));
+    // Log the results to verify
+    console.log('Strahd sessions found:', strahdsSessions.length);
+    console.log('Giants sessions found:', giantsSessions.length);
+
+    // Update campaigns with sessions
+    await updateCampaignSessions(campaigns, strahdsSessions, giantsSessions);
 
     console.log('✅ Database seeded successfully!');
 
@@ -78,7 +96,7 @@ async function seedDatabase() {
       characters,
       campaigns,
       quests,
-      sessions,
+      allSessions,
     };
   } catch (error) {
     console.error('Error seeding database:', error);
@@ -113,6 +131,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       console.error('Fatal error:', err);
       process.exit(1);
     });
+}
+
+async function updateCampaignSessions(campaigns: any, strahdsSessions: any, giantsSessions: any) {
+  campaigns[0].sessions.pastSessions = strahdsSessions.map((s: any) => s._id);
+  campaigns[1].sessions.pastSessions = giantsSessions.map((s: any) => s._id);
+
+  await Promise.all(campaigns.map((c: any) => c.save()));
+  console.log('📅 Updated campaign sessions');
 }
 
 export default seedDatabase;

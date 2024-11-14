@@ -45,6 +45,11 @@ export async function createCampaigns(players: any[], characters: any[]) {
         completedQuests: [],
         failedQuests: [],
       },
+      sessions: {
+        pastSessions: [],
+        futureSessions: [],
+        cancelledSessions: [],
+      },
     },
     {
       name: 'Curse of Strahd',
@@ -87,6 +92,11 @@ export async function createCampaigns(players: any[], characters: any[]) {
         activeQuests: [],
         completedQuests: [],
         failedQuests: [],
+      },
+      sessions: {
+        pastSessions: [],
+        futureSessions: [],
+        cancelledSessions: [],
       },
     },
   ]);
