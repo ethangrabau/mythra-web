@@ -6,6 +6,8 @@ interface CampaignOverviewContentProps {
 }
 
 export function CampaignOverviewContent({ campaign }: CampaignOverviewContentProps) {
+  console.log('Here is the campaign object:');
+  console.log(campaign);
   return (
     <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
       {/* Recent Activity */}

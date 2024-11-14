@@ -31,6 +31,11 @@ export interface ICampaign extends Document {
     completedQuests: Types.ObjectId[];
     failedQuests: Types.ObjectId[];
   };
+  sessions: {
+    pastSessions: Types.ObjectId[];
+    futureSessions: Types.ObjectId[];
+    cancelledSessions: Types.ObjectId[];
+  };
 }
 
 // Schemas
@@ -71,6 +76,11 @@ const CampaignSchema = new Schema<ICampaign>(
       activeQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
       completedQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
       failedQuests: [{ type: Schema.Types.ObjectId, ref: 'Quest' }],
+    },
+    sessions: {
+      pastSessions: [{ type: Schema.Types.ObjectId, ref: 'Session' }],
+      futureSessions: [{ type: Schema.Types.ObjectId, ref: 'Session' }],
+      cancelledSessions: [{ type: Schema.Types.ObjectId, ref: 'Session' }],
     },
   },
   { timestamps: true }
