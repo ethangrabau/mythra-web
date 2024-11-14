@@ -20,7 +20,7 @@ export function CampaignOverviewContent({ campaign }: CampaignOverviewContentPro
         </CardHeader>
         <CardContent>
           <div className='space-y-4'>
-            {campaign.sessions?.slice(0, 3).map((session: any) => (
+            {campaign.sessions.pastSessions?.slice(0, 3).map((session: any) => (
               <div key={session._id} className='flex items-start space-x-3 p-3 bg-gray-50 rounded-lg'>
                 <CalendarDays className='h-5 w-5 text-gray-500 mt-0.5' />
                 <div>

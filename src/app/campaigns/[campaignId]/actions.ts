@@ -16,6 +16,7 @@ export async function getCampaign(campaignId: string) {
       .populate('dmId', 'username email')
       .populate('players.playerId', 'username email')
       .populate('players.characterId', 'name class race')
+      .populate('sessions.pastSessions')
       .lean(); // Convert to plain JavaScript object
 
     if (!campaign) {
