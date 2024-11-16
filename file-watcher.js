@@ -129,29 +129,44 @@ const startFileWatcher = () => {
   fs.watch(transcriptionDir, (eventType, filename) => {
     if (filename && filename.endsWith('-transcription.json')) {
       const filePath = path.join(transcriptionDir, filename);
-
-      fs.readFile(filePath, 'utf-8', (err, data) => {
+  
+      fs.readFile(filePath, 'utf-8', async (err, data) => {
         if (err) {
           console.error(`Error reading transcription file ${filename}:`, err);
           return;
         }
-
+  
         try {
           const transcriptionData = JSON.parse(data);
-          const text = transcriptionData.text?.trim();
-
-          // Extract the session ID from filename and normalize it
-          const rawSessionId = filename.replace('-transcription.json', '');
-          
-          // Only process new text
-          if (text && !memory.processedChunks.includes(text)) {
-            console.log('New transcription found:', {
-              sessionId: rawSessionId,
-              textLength: text.length
-            });
-            processTranscription(text, rawSessionId);
-          } else {
-            console.log('No new transcription to process for file:', filename);
+          const { transcriptions = [], sessionId } = transcriptionData;
+  
+          if (!transcriptions || transcriptions.length === 0) {
+            console.log(`No transcriptions found in file: ${filename}`);
+            return;
+          }
+  
+          console.log(`Processing transcription file: ${filename}`);
+  
+          // Iterate over each transcription in the file
+          for (const transcription of transcriptions) {
+            const { text, chunkId } = transcription;
+  
+            // Check if this chunk has already been processed
+            if (!memory.processedChunks.includes(chunkId)) {
+              console.log('New transcription found:', {
+                sessionId,
+                chunkId,
+                textLength: text.length,
+              });
+  
+              // Process the new transcription
+              await processTranscription(text, sessionId);
+  
+              // Mark this chunk as processed
+              memory.processedChunks.push(chunkId);
+            } else {
+              console.log(`Chunk ${chunkId} already processed, skipping.`);
+            }
           }
         } catch (err) {
           console.error('Error parsing transcription file:', err);

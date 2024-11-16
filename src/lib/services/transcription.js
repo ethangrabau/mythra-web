@@ -7,9 +7,8 @@ import { OPENAI_API_KEY } from '../../env.js';
 export default class TranscriptionService {
   constructor() {
     this.apiKey = OPENAI_API_KEY;
-
     if (!this.apiKey) {
-      throw new Error('OpenAI API key is missing. Please set it in the environment.');
+      throw new Error('OpenAI API key is missing');
     }
   }
 
@@ -17,26 +16,29 @@ export default class TranscriptionService {
     try {
       console.log('TranscriptionService: Starting transcription for file:', filePath);
 
-      // Create a form data instance
+      // Validate file exists and has content
+      const stats = await fs.promises.stat(filePath);
+      console.log('File stats:', stats);
+      
+      if (stats.size === 0) {
+        throw new Error('File is empty');
+      }
+
+      // Create form data
       const form = new FormData();
-
-      // Read the file buffer
       const fileBuffer = fs.readFileSync(filePath);
-
-      // Append the file buffer with a filename
+      
+      // Add file with explicit content type
       form.append('file', fileBuffer, {
-        filename: 'audio.webm',
+        filename: 'audio.webm', // Change to .webm
         contentType: 'audio/webm',
       });
 
-      // Add other required fields
       form.append('model', 'whisper-1');
       form.append('language', 'en');
 
-      console.log('TranscriptionService: Preparing request...');
-      console.log('Form data fields:', form.getBoundary());
+      console.log('TranscriptionService: Sending request to OpenAI...');
 
-      // Make request to OpenAI API
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
         headers: {
@@ -45,8 +47,6 @@ export default class TranscriptionService {
         },
         body: form,
       });
-
-      console.log('TranscriptionService: Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();

@@ -1,0 +1,18 @@
+{
+  "sessionId": "session-1731688034377-5wnbspbnh",
+  "lastUpdated": 1731688100068,
+  "transcriptions": [
+    {
+      "text": "A police officer.",
+      "timestamp": 1731688043235,
+      "sessionId": "session-1731688034377-5wnbspbnh",
+      "chunkId": 0
+    },
+    {
+      "text": "A police officer who is half human.",
+      "timestamp": 1731688090189,
+      "sessionId": "session-1731688034377-5wnbspbnh",
+      "chunkId": 4
+    }
+  ]
+}

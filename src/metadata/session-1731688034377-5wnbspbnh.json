@@ -1,0 +1,20 @@
+{
+  "totalDuration": 6000,
+  "totalSize": 268725,
+  "lastChunkId": 5,
+  "checksums": {},
+  "transcriptions": [
+    {
+      "text": "A police officer.",
+      "timestamp": 1731688043235,
+      "sessionId": "session-1731688034377-5wnbspbnh",
+      "chunkId": 0
+    },
+    {
+      "text": "A police officer who is half human.",
+      "timestamp": 1731688090189,
+      "sessionId": "session-1731688034377-5wnbspbnh",
+      "chunkId": 4
+    }
+  ]
+}

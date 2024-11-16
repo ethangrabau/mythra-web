@@ -1,0 +1,18 @@
+{
+  "sessionId": "session-1731714341469-bokt8mv1t",
+  "lastUpdated": 1731714396943,
+  "transcriptions": [
+    {
+      "text": "This is recording number one.",
+      "timestamp": 1731714353135,
+      "sessionId": "session-1731714341469-bokt8mv1t",
+      "chunkId": 0
+    },
+    {
+      "text": "This is recording number four.",
+      "timestamp": 1731714385720,
+      "sessionId": "session-1731714341469-bokt8mv1t",
+      "chunkId": 8
+    }
+  ]
+}
