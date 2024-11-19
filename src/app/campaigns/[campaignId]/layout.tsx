@@ -37,9 +37,7 @@ export default async function CampaignLayout({ children, params: paramsPromise }
 
   try {
     const data = await getCampaign(params.campaignId);
-    console.log('Campaign loaded in /campaigns/:campaignId/layout.tsx');
     campaign = data as CampaignData;
-    // console.log(campaign);
 
     if (!campaign) return notFound();
   } catch (error) {
@@ -52,7 +50,6 @@ export default async function CampaignLayout({ children, params: paramsPromise }
         <CampaignHeader campaign={campaign} />
       </Suspense>
 
-      {/* <CampaignTabs campaignId={params.campaignId.toString()} /> */}
       <CampaignTabs />
 
       <div className='bg-white rounded-lg shadow'>{children}</div>
