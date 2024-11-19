@@ -14,6 +14,11 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
     return notFound();
   }
 
+  // Sort sessions by date in descending order (newest first)
+  const sortedSessions = [...campaign.sessions.pastSessions].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
   return (
     <div className='p-6'>
       <div className='mb-6 flex items-center justify-between'>
@@ -23,7 +28,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
         </div>
       </div>
 
-      <SessionList sessions={campaign.sessions.pastSessions} />
+      <SessionList sessions={sortedSessions} />
     </div>
   );
 }

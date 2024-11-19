@@ -80,6 +80,20 @@ export function SessionList({ sessions }: SessionListProps) {
                       </div>
                     </div>
                   )}
+
+                  {/* Locations Visited */}
+                  {session.importantLocations.length > 0 && (
+                    <div className='space-y-2'>
+                      <h4 className='text-sm font-medium text-gray-900'>Locations Visited:</h4>
+                      <div className='flex flex-wrap gap-2'>
+                        {session.importantLocations.map(location => (
+                          <span key={location} className='px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600'>
+                            {location}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
