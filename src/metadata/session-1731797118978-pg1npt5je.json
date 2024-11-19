@@ -1,0 +1,14 @@
+{
+  "totalDuration": 3000,
+  "totalSize": 160382,
+  "lastChunkId": 0,
+  "checksums": {},
+  "transcriptions": [
+    {
+      "text": "This is recording number one, and I'm expecting it to work.",
+      "timestamp": 1731797137254,
+      "sessionId": "session-1731797118978-pg1npt5je",
+      "chunkId": 0
+    }
+  ]
+}

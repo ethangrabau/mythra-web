@@ -1,0 +1,14 @@
+{
+  "totalDuration": 3000,
+  "totalSize": 160418,
+  "lastChunkId": 0,
+  "checksums": {},
+  "transcriptions": [
+    {
+      "text": "This is the first recording and it should stop in just a few seconds.",
+      "timestamp": 1731796736359,
+      "sessionId": "session-1731796721371-19ifajlcu",
+      "chunkId": 0
+    }
+  ]
+}

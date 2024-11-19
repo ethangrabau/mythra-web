@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { calculateChecksum } from '../utils/audio';
 import {
   SessionMetadata,
   WebSocketMessage,
@@ -13,10 +12,6 @@ import {
   AudioRecorderHook,
   WebSocketMessageType
 } from '../types/audio';
-
-interface WindowWithAudioContext extends Window {
-  webkitAudioContext: typeof AudioContext;
-}
 
 export function useAudioRecorder(): AudioRecorderHook {
   const [isRecording, setIsRecording] = useState(false);
@@ -177,6 +172,7 @@ export function useAudioRecorder(): AudioRecorderHook {
     return () => {
       if (frameId) cancelAnimationFrame(frameId);
     };
+    console.log(`isRecording state changed: ${isRecording}`);
   }, [isRecording]);
 
   const startSession = useCallback(async (providedSessionId?: string) => {
@@ -220,11 +216,11 @@ export function useAudioRecorder(): AudioRecorderHook {
   const startRecording = useCallback(async () => {
     try {
       setError(null);
-
+  
       if (!isConnected) {
         throw new Error('Not connected to server');
       }
-
+  
       let currentSessionId: string;
       if (!sessionActive) {
         currentSessionId = await startSession();
@@ -234,64 +230,79 @@ export function useAudioRecorder(): AudioRecorderHook {
           throw new Error('Invalid session state');
         }
       }
-
+  
       console.log('Starting recording...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      const AudioContext = window.AudioContext || (window as unknown as WindowWithAudioContext).webkitAudioContext;
-      const audioContext = new AudioContext();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-
-      analyser.fftSize = 1024;
-      analyser.smoothingTimeConstant = 0.8;
-      source.connect(analyser);
-
-      analyserRef.current = analyser;
-      audioContextRef.current = audioContext;
-
-      const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : 'audio/ogg;codecs=opus'
-      });
-
-      recorder.ondataavailable = async (event) => {
-        console.log(`New audio chunk received. Size: ${event.data.size} bytes`);
-
-        if (!event.data || event.data.size <= 5120) {
-          console.warn(`Skipped small or empty chunk. Size: ${event.data.size} bytes`);
+  
+      // Remove or connect the source as needed:
+      // const source = audioContext.createMediaStreamSource(stream);
+  
+      const recordChunk = async () => {
+        if (!isRecording) {
+          console.log("Recording stopped, not starting a new chunk.");
           return;
         }
-
-        try {
-          const arrayBuffer = await event.data.arrayBuffer();
-
-          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-            console.warn('Empty audio buffer received');
-            return;
+      
+        console.log("Starting a new chunk...");
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : 'audio/ogg;codecs=opus',
+        });
+      
+        mediaRecorder.onstart = () => {
+          console.log("MediaRecorder started for a new chunk");
+        };
+      
+        mediaRecorder.onstop = () => {
+          console.log("MediaRecorder stopped for this chunk");
+        };
+      
+        mediaRecorder.ondataavailable = async (event) => {
+          if (event.data.size > 0) {
+            console.log(`Chunk recorded: ${event.data.size} bytes`);
+            const arrayBuffer = await event.data.arrayBuffer();
+      
+            // Send chunk to WebSocket server
+            if (socketRef.current?.readyState === WebSocket.OPEN) {
+              socketRef.current.send(arrayBuffer);
+              console.log("Chunk sent to server");
+            }
+          } else {
+            console.warn("Empty chunk received");
           }
-
-          const checksum = await calculateChecksum(arrayBuffer);
-          console.log(`Processed chunk. Checksum: ${checksum}`);
-
-          if (socketRef.current?.readyState === WebSocket.OPEN) {
-            socketRef.current.send(arrayBuffer);
+        };
+      
+        mediaRecorder.onerror = (e) => {
+          console.error("MediaRecorder error:", e);
+          stopRecording(); // Stop if there's an error
+        };
+      
+        mediaRecorder.start();
+        setTimeout(() => {
+          if (mediaRecorder.state !== "inactive") {
+            console.log("Stopping MediaRecorder for this chunk...");
+            mediaRecorder.stop();
+      
+            if (isRecording) {
+              console.log("Triggering next chunk...");
+              recordChunk(); // Start the next chunk
+            } else {
+              console.log("Recording has stopped, not triggering the next chunk.");
+            }
           }
-        } catch (err) {
-          console.error('Error processing audio chunk:', err);
-        }
-      };
-
-      recorder.start(5000);
-      mediaRecorder.current = recorder;
+        }, 10000); // 10-second chunk duration
+      };            
+  
+      recordChunk(); // Start the first chunk
       setIsRecording(true);
-
+  
     } catch (err) {
       console.error('Error starting recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, [isConnected, sessionActive, sessionData, startSession]);
+  }, [isConnected, sessionActive, sessionData, startSession, isRecording]);
+  
 
   const stopRecording = useCallback(() => {
     console.log('Stopping recording...');
