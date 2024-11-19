@@ -59,6 +59,28 @@ export function SessionList({ sessions }: SessionListProps) {
                     <span>{session.combatEncounters.length} encounters</span>
                   </div>
                 </div>
+
+                {/* Details Section */}
+                <div className='pt-4 space-y-3'>
+                  {/* Combat Encounters */}
+                  {session.combatEncounters.length > 0 && (
+                    <div className='space-y-2'>
+                      <h4 className='text-sm font-medium text-gray-900'>Combat Encounters</h4>
+                      <div className='space-y-1'>
+                        {session.combatEncounters.map((encounter, index) => (
+                          <div key={index} className='text-sm text-gray-600 flex items-center gap-2'>
+                            <span className='w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center text-xs'>
+                              {index + 1}
+                            </span>
+                            <span>
+                              {encounter.name} - {encounter.outcome}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
