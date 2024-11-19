@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Clock, Trophy, CalendarDays } from 'lucide-react';
+import { Clock, Trophy, CalendarDays, Users, ScrollText } from 'lucide-react';
 
 interface CampaignOverviewContentProps {
   campaign: any; // Type this properly based on your campaign structure
@@ -45,7 +45,7 @@ export function CampaignOverviewContent({ campaign }: CampaignOverviewContentPro
           <div className='space-y-4'>
             <div className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'>
               <div className='flex items-center space-x-3'>
-                <div className='p-2 bg-blue-100 rounded-full'>{/* <Users className='h-4 w-4 text-blue-600' /> */}</div>
+                <div className='p-2 bg-blue-100 rounded-full'>{<Users className='h-4 w-4 text-blue-600' />}</div>
                 <div>
                   <p className='font-medium text-gray-900'>Player Level</p>
                   <p className='text-sm text-gray-500'>Current: {campaign.level.current}</p>
@@ -59,7 +59,7 @@ export function CampaignOverviewContent({ campaign }: CampaignOverviewContentPro
                 <div className='flex items-center space-x-3'>
                   <div className='p-2 bg-green-100 rounded-full'>
                     clgi
-                    {/* <ScrollText className='h-4 w-4 text-green-600' /> */}
+                    {<ScrollText className='h-4 w-4 text-green-600' />}
                   </div>
                   <div>
                     <p className='font-medium text-gray-900'>Quests Completed</p>
