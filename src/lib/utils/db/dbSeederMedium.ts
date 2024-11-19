@@ -15,6 +15,7 @@ import { createCharacters } from './createCharacters.js';
 import { createCampaigns } from './createCampaigns.js';
 import { createQuests } from './createQuests.js';
 import { createSessions } from './createSessions.js';
+import { createTranscriptions } from './createTranscription.js';
 
 // Load environment variables
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -69,24 +70,14 @@ async function seedDatabase() {
 
     // Create sessions
     const allSessions = await createSessions(campaigns, characters, quests);
-    // console.log('🎲 All Sessions');
-    // console.log(allSessions);
-
-    // console.log('-------------------------');
-    // // Add some debug logging
-    // console.log('Debugging session filtering:');
-    // console.log('Campaign 0 ID:', campaigns[0]._id);
-    // console.log('Campaign 1 ID:', campaigns[1]._id);
-    // console.log('First session campaignId:', allSessions[0].campaignId);
-
     const strahdsSessions = allSessions.filter((session: any) => campaigns[0]._id.equals(session.campaignId));
     const giantsSessions = allSessions.filter((session: any) => campaigns[1]._id.equals(session.campaignId));
-    // Log the results to verify
-    console.log('Strahd sessions found:', strahdsSessions.length);
-    console.log('Giants sessions found:', giantsSessions.length);
-
     // Update campaigns with sessions
     await updateCampaignSessions(campaigns, strahdsSessions, giantsSessions);
+
+    const transcriptions = await createTranscriptions(allSessions, players);
+    //Link transcriptions to sessions
+    await linkTranscriptionsToSessions(allSessions, transcriptions);
 
     console.log('✅ Database seeded successfully!');
 
@@ -139,6 +130,16 @@ async function updateCampaignSessions(campaigns: any, strahdsSessions: any, gian
 
   await Promise.all(campaigns.map((c: any) => c.save()));
   console.log('📅 Updated campaign sessions');
+}
+
+async function linkTranscriptionsToSessions(sessions: any, transcriptions: any) {
+  for (const session of sessions) {
+    //Get only the transcriptions that have a sesionId in our sessions
+    const sessionTranscriptions = transcriptions.filter((t: any) => t.sessionId.equals(session._id));
+    session.transcriptions = sessionTranscriptions.map((t: any) => t._id);
+
+    await session.save();
+  }
 }
 
 export default seedDatabase;
