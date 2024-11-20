@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Clock, Trophy, CalendarDays, Users, ScrollText } from 'lucide-react';
+import Link from 'next/link';
 
 interface CampaignOverviewContentProps {
   campaign: any; // Type this properly based on your campaign structure
@@ -21,13 +22,15 @@ export function CampaignOverviewContent({ campaign }: CampaignOverviewContentPro
         <CardContent>
           <div className='space-y-4'>
             {campaign.sessions.pastSessions?.slice(0, 3).map((session: any) => (
-              <div key={session._id} className='flex items-start space-x-3 p-3 bg-gray-50 rounded-lg'>
-                <CalendarDays className='h-5 w-5 text-gray-500 mt-0.5' />
-                <div>
-                  <p className='font-medium text-gray-900'>Session {session.sessionNumber}</p>
-                  <p className='text-sm text-gray-500'>{session.summary}</p>
+              <Link key={session._id.toString()} href={`/campaigns/${session.campaignId}/sessions/${session._id}`}>
+                <div key={session._id} className='flex items-start space-x-3 p-3 bg-gray-50 rounded-lg'>
+                  <CalendarDays className='h-5 w-5 text-gray-500 mt-0.5' />
+                  <div>
+                    <p className='font-medium text-gray-900'>Session {session.sessionNumber}</p>
+                    <p className='text-sm text-gray-500'>{session.summary}</p>
+                  </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </CardContent>
