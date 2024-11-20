@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import type { ITranscription } from '@/lib/models/Transcription';
 import { Types } from 'mongoose';
 import { formatTimestamp } from '@/lib/utils/formatTimestamp';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 type TranscriptionWithId = {
   _id: Types.ObjectId;
@@ -20,22 +21,28 @@ export const TranscriptionTimeline = ({ transcriptions }: TranscriptionTimelineP
   return (
     <Card>
       <CardTitle className='flex items-center gap-2 mb-2 mt-2'>
-        <Mic className='h-5 w-5' />
+        <Mic className='h-5 w-5 ml-2' />
         Transcriptions
       </CardTitle>
       <CardContent>
-        <div className=''>
-          <div className='absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200' />
-          <div className='space-y-6'>
-            {transcriptions.map(transcription => (
-              <div key={transcription._id.toString()} className='relative pl-10'>
-                <div className='absolute left-2 w-4 h-4 rounded-full bg-blue-500 -translate-x-2 mt-1.5' />
-                <div className='space-y-2'>
-                  <div className='flex items-center gap-2'>
-                    <Badge variant='outline'>{formatTimestamp(transcription.timestamp)}</Badge>
-                    <Badge>{transcription.type}</Badge>
-                  </div>
+        <Accordion type='single' collapsible className='w-full'>
+          {transcriptions.map(transcription => (
+            <AccordionItem key={transcription._id.toString()} value={transcription._id.toString()}>
+              <AccordionTrigger className='hover:no-underline'>
+                <div className='flex items-center gap-4'>
+                  <Badge variant='outline'>{formatTimestamp(transcription.timestamp)}</Badge>
+                  <span className='text-sm text-gray-600 text-left'>
+                    {transcription.content.substring(0, 100)}
+                    {transcription.content.length > 100 ? '...' : ''}
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className='space-y-4 pt-2'>
+                  {/* Full content */}
                   <p className='text-gray-700'>{transcription.content}</p>
+
+                  {/* Metadata */}
                   {transcription.metadata && (
                     <div className='flex flex-wrap gap-4 text-sm text-gray-500'>
                       {transcription.metadata.location && (
@@ -46,6 +53,7 @@ export const TranscriptionTimeline = ({ transcriptions }: TranscriptionTimelineP
                       )}
                       {transcription.metadata.emotions && (
                         <div className='flex gap-2'>
+                          <span>Tone:</span>
                           {transcription.metadata.emotions.map(emotion => (
                             <Badge key={emotion} variant='outline'>
                               {emotion}
@@ -53,9 +61,18 @@ export const TranscriptionTimeline = ({ transcriptions }: TranscriptionTimelineP
                           ))}
                         </div>
                       )}
+                      {transcription.metadata.background && (
+                        <div className='flex gap-2'>
+                          {transcription.metadata.background.music && <Badge variant='secondary'>Music</Badge>}
+                          {transcription.metadata.background.ambience && <Badge variant='secondary'>Ambience</Badge>}
+                          {transcription.metadata.background.effects && <Badge variant='secondary'>Effects</Badge>}
+                        </div>
+                      )}
                     </div>
                   )}
-                  {transcription.tags && transcription.tags.length > 0 && (
+
+                  {/* Tags */}
+                  {transcription.tags.length > 0 && (
                     <div className='flex flex-wrap gap-2'>
                       {transcription.tags.map(tag => (
                         <Badge key={tag} variant='secondary' className='text-xs'>
@@ -64,16 +81,23 @@ export const TranscriptionTimeline = ({ transcriptions }: TranscriptionTimelineP
                       ))}
                     </div>
                   )}
+
+                  {/* Revision status */}
                   {transcription.isRevised && (
-                    <Badge variant='outline' className='text-xs'>
-                      Revised
-                    </Badge>
+                    <div className='flex items-center gap-2'>
+                      <Badge variant='outline' className='text-xs'>
+                        Revised
+                      </Badge>
+                      {transcription.originalContent && (
+                        <span className='text-sm text-gray-500'>Original: {transcription.originalContent}</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </CardContent>
     </Card>
   );
