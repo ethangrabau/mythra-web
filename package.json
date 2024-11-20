@@ -12,6 +12,7 @@
     "seed-from-config": "ts-node-esm --project tsconfig.seed.json src/lib/utils/db/dbSeederMedium.ts"
   },
   "dependencies": {
+    "@radix-ui/react-accordion": "^1.2.1",
     "@types/express": "^5.0.0",
     "@types/ws": "^8.5.13",
     "class-variance-authority": "^0.7.0",
