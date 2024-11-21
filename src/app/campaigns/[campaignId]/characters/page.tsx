@@ -13,7 +13,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
   if (!characters) return notFound();
 
   return (
-    <div className='p=6'>
+    <div className='p-6'>
       <h2 className='text-2xl font-bold text-gray-900 mb-6'>Party Members</h2>
       <CharacterGrid characters={characters} />
     </div>
