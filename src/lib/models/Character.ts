@@ -1,7 +1,7 @@
 import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
 // Character Interface
-interface ICharacter extends Document {
+export interface ICharacter extends Document {
   playerId: Types.ObjectId;
   name: string;
   class: {
