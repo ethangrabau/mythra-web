@@ -1,3 +1,4 @@
+'use client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -20,7 +21,7 @@ export const CharacterGrid = ({ characters }: CharacterGridProps) => {
       {characters.map((character: CharacterWithId) => (
         <Card key={character._id.toString()} className='overflow-hidden hover:shadow-lg transition-shadow'>
           <div className='flex'>
-            <div className='relative w-48 h-64'>
+            <div className='relative w-48 min-h-[16rem] flex-shrink-0'>
               {/* Character Image */}
               <Image
                 src={character.imageUrl || '/placeholder-character.jpg'}
@@ -28,6 +29,10 @@ export const CharacterGrid = ({ characters }: CharacterGridProps) => {
                 fill
                 className='object-cover'
                 sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+                onError={(e: any) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/placeholder-character.jpg';
+                }}
               />
             </div>
           </div>

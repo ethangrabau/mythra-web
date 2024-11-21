@@ -20,7 +20,7 @@ const config: NextConfig = {
       // This is needed because ibb.co redirects to i.ibb.co
       {
         protocol: 'https',
-        hostname: 'i.bb.co',
+        hostname: 'i.ibb.co',
         port: '',
         pathname: '/**',
       },
