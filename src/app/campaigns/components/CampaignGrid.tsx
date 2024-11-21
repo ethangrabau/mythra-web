@@ -15,7 +15,7 @@ type CampaignProps = {
   players: Array<any>;
   nextSessionDate?: string;
   dmId: {
-    displayName: string;
+    email: string;
   };
   tags: string[];
 };
@@ -77,7 +77,7 @@ export default function CampaignGrid({ campaigns }: { campaigns: CampaignProps[]
 
                 <div className='flex items-center gap-2 text-sm text-gray-600'>
                   <span className='font-semibold'>DM:</span>
-                  <span>{campaign.dmId.displayName}</span>
+                  <span>{campaign.dmId.email}</span>
                 </div>
               </div>
             </CardContent>
