@@ -1,4 +1,5 @@
 import mongoose, { Document, Types, Schema } from 'mongoose';
+import { ISession } from './Session';
 
 export interface ICampaign extends Document {
   name: string;
@@ -32,9 +33,9 @@ export interface ICampaign extends Document {
     failedQuests: Types.ObjectId[];
   };
   sessions: {
-    pastSessions: Types.ObjectId[];
-    futureSessions: Types.ObjectId[];
-    cancelledSessions: Types.ObjectId[];
+    pastSessions: (Types.ObjectId | ISession)[];
+    futureSessions: Types.ObjectId[] | ISession[];
+    cancelledSessions: Types.ObjectId[] | ISession[];
   };
 }
 

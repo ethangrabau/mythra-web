@@ -1,12 +1,20 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Clock, Trophy, CalendarDays, Users, ScrollText } from 'lucide-react';
+import { ICampaign } from '@/lib/models/Campaign';
 import Link from 'next/link';
+import { ISession } from '@/lib/models/Session';
+import { ObjectId } from 'mongodb';
+import { format } from 'date-fns';
 
-interface CampaignOverviewContentProps {
-  campaign: any; // Type this properly based on your campaign structure
-}
+type CampaignOverviewContentProps = {
+  campaign: ICampaign;
+};
 
 export function CampaignOverviewContent({ campaign }: CampaignOverviewContentProps) {
+  const orderedSessions = [...campaign.sessions.pastSessions].sort(
+    (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
   return (
     <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
       {/* Recent Activity */}
@@ -19,12 +27,14 @@ export function CampaignOverviewContent({ campaign }: CampaignOverviewContentPro
         </CardHeader>
         <CardContent>
           <div className='space-y-4'>
-            {campaign.sessions.pastSessions?.slice(0, 3).map((session: any) => (
+            {orderedSessions.slice(0, 3).map((session: any) => (
               <Link key={session._id.toString()} href={`/campaigns/${session.campaignId}/sessions/${session._id}`}>
-                <div key={session._id} className='flex items-start space-x-3 p-3 bg-gray-50 rounded-lg'>
+                <div key={session._id} className='flex items-start space-x-3 p-3 bg-gray-50 rounded-lg mb-6'>
                   <CalendarDays className='h-5 w-5 text-gray-500 mt-0.5' />
                   <div>
-                    <p className='font-medium text-gray-900'>Session {session.sessionNumber}</p>
+                    <p className='font-medium text-gray-900'>
+                      Session {session.sessionNumber} {format(new Date(session.date), 'PPP')}
+                    </p>
                     <p className='text-sm text-gray-500'>{session.summary}</p>
                   </div>
                 </div>
