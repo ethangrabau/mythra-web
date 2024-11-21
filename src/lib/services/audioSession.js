@@ -1,21 +1,15 @@
 // src/lib/services/audioSession.js
+import { PATHS } from '../constants/paths.js';
 import fs from 'fs/promises';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import crypto from 'crypto';
+
+import { RecordingService } from './recordingService.js';
 
 // Fix for __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Get root project directory (2 levels up from services folder)
-const PROJECT_ROOT = join(__dirname, '..', '..');
-
-const AUDIO_DIR = join(PROJECT_ROOT, 'audio-chunks');
-const RECORDINGS_DIR = join(PROJECT_ROOT, 'recordings');
-const METADATA_DIR = join(PROJECT_ROOT, 'metadata');
+const { AUDIO_DIR, RECORDINGS_DIR, METADATA_DIR } = PATHS;
 
 // Ensure necessary directories exist
 mkdirSync(AUDIO_DIR, { recursive: true });
@@ -30,6 +24,7 @@ export class AudioSession {
     this.status = 'initializing';
     this.transcriptionService = transcriptionService;
     this.socket = null;
+    this._processedChunks = new Set();  // Add this line
     this.metadata = {
       totalDuration: 0,
       totalSize: 0,
@@ -37,6 +32,8 @@ export class AudioSession {
       checksums: new Set(),
       transcriptions: []
     };
+    
+    this.recordingService = new RecordingService();
   }
 
   setSocket(socket) {
@@ -65,49 +62,154 @@ export class AudioSession {
     }
   }
 
-  async addChunk(chunkId, data) {
+  async startRecording() {
     try {
-      // Skip null or empty data
-      if (!data || data.length === 0) {
-        console.warn(`Skipped null or empty chunk with ID: ${chunkId}`);
-        return null; // Don't process this chunk further
-      }
+      this.status = 'recording';
+      this.sendStatus('Starting recording...');
   
-      const calculatedChecksum = crypto.createHash('sha256').update(Buffer.from(data)).digest('hex');
-      if (this.metadata.checksums.has(calculatedChecksum)) {
-        throw new Error('Duplicate chunk detected');
-      }
-  
-      // Create session directory if it doesn't exist
-      const sessionDir = join(AUDIO_DIR, this.sessionId);
-      console.log('Creating session directory at:', sessionDir);
-      await fs.mkdir(sessionDir, { recursive: true });
-  
-      // Save the chunk
-      const chunkPath = join(sessionDir, `chunk-${chunkId}.webm`);
-      console.log('Saving chunk to:', chunkPath);
-      await fs.writeFile(chunkPath, data);
-  
-      // Add chunk info
-      this.chunks.set(chunkId, { 
-        path: chunkPath, 
-        size: data.length,
-        timestamp: Date.now(),
+      // Start recording with callback for completed chunks
+      this.recordingService.startRecording(this.sessionId, async (sessionId, chunkId, filePath) => {
+        try {
+          // Read the chunk file
+          const data = await fs.readFile(filePath);
+          
+          // Process the chunk (which handles transcription)
+          await this.processChunk(chunkId, data);
+          
+          // Send acknowledgment to client
+          if (this.socket) {
+            this.socket.send(JSON.stringify({
+              type: 'ack',
+              payload: { chunkId },
+              sessionId: this.sessionId,
+              timestamp: Date.now()
+            }));
+          }
+        } catch (error) {
+          console.error(`Error processing chunk ${chunkId}:`, error);
+          this.sendError(`Error processing chunk ${chunkId}: ${error.message}`);
+        }
       });
   
-      // Update metadata
-      this.metadata.lastChunkId = chunkId;
-      this.metadata.checksums.add(calculatedChecksum);
-      this.metadata.totalSize += data.length;
-      this.metadata.totalDuration += 3000; // Assuming a 3-second chunk duration
-  
-      await this.saveMetadata();
-      return this.chunks.get(chunkId);
     } catch (error) {
-      console.error(`Error processing chunk ${chunkId}:`, error);
+      console.error('Error starting recording:', error);
+      this.sendError(`Failed to start recording: ${error.message}`);
       throw error;
     }
-  }  
+  }
+
+  async stopRecording() {
+    try {
+      console.log(`[AudioSession] Stopping recording for session ${this.sessionId}`);
+      
+      if (this.recordingService.isRecording(this.sessionId)) {
+        // Stop the recording service
+        await this.recordingService.stopRecording(this.sessionId);
+        console.log('[AudioSession] RecordingService stopped');
+        
+        // Update status
+        this.status = 'stopped';
+        
+        // Send status update to client
+        if (this.socket) {
+          console.log('[AudioSession] Sending stopped status to client');
+          this.socket.send(JSON.stringify({
+            type: 'status',
+            payload: {
+              status: 'stopped',
+              sessionId: this.sessionId
+            },
+            sessionId: this.sessionId,
+            timestamp: Date.now()
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      this.sendError(`Failed to stop recording: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async processChunk(chunkId, data) {
+    try {
+      console.log(`[AudioSession] Processing chunk ${chunkId} for session ${this.sessionId}`);
+      
+      // Create the chunk path first
+      const chunkPath = join(AUDIO_DIR, this.sessionId, `chunk-${chunkId}.webm`);
+      
+      // Validate chunk not already processed
+      const chunkKey = `${this.sessionId}-${chunkId}`;
+      if (this._processedChunks.has(chunkKey)) {
+        console.log(`[AudioSession] Chunk ${chunkId} already processed, skipping`);
+        return null;
+      }
+  
+      // Verify the file exists and has content
+      try {
+        const stats = await fs.stat(chunkPath);
+        console.log(`[AudioSession] Chunk file exists with size: ${stats.size} bytes`);
+        if (stats.size === 0) {
+          throw new Error('Chunk file is empty');
+        }
+      } catch (err) {
+        console.error(`[AudioSession] Failed to read chunk file:`, err);
+        return null;
+      }
+  
+      // Process chunk and get transcription
+      const chunk = {
+        path: chunkPath,
+        size: data.length,
+        timestamp: Date.now(),
+      };
+      
+      console.log(`[AudioSession] Starting transcription for chunk ${chunkId}`);
+      const transcription = await this.transcribeChunk(chunk, chunkId);
+      
+      if (transcription) {
+        // Update transcription file
+        const transcriptionPath = join(METADATA_DIR, `${this.sessionId}-transcription.json`);
+        let transcriptionData;
+        
+        try {
+          const existingData = await fs.readFile(transcriptionPath, 'utf-8');
+          transcriptionData = JSON.parse(existingData);
+        } catch {
+          transcriptionData = {
+            sessionId: this.sessionId,
+            lastUpdated: Date.now(),
+            transcriptions: []
+          };
+        }
+  
+        // Add new transcription
+        transcriptionData.transcriptions.push(transcription);
+        transcriptionData.lastUpdated = Date.now();
+        
+        // Save file and notify client
+        await fs.writeFile(transcriptionPath, JSON.stringify(transcriptionData, null, 2));
+        
+        if (this.socket) {
+          console.log(`[AudioSession] Sending transcription to client:`, transcription);
+          this.socket.send(JSON.stringify({
+            type: 'transcription',
+            payload: { transcription },
+            sessionId: this.sessionId,
+            timestamp: Date.now()
+          }));
+        }
+      }
+  
+      // Mark chunk as processed
+      this._processedChunks.add(chunkKey);
+      return chunk;
+      
+    } catch (error) {
+      console.error(`[AudioSession] Error processing chunk ${chunkId}:`, error);
+      throw error;
+    }
+  }
 
   async saveMetadata() {
     const metadataPath = join(METADATA_DIR, `${this.sessionId}.json`);
@@ -117,6 +219,10 @@ export class AudioSession {
   async transcribeChunk(chunk, chunkId) {
     try {
       console.log(`Transcribing chunk ${chunkId} at path: ${chunk.path}`);
+      
+      // Wait for the file to be fully written
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const transcription = await this.transcriptionService.transcribeFile(chunk.path, this.sessionId);
       
       // Add chunk metadata to transcription
@@ -125,7 +231,8 @@ export class AudioSession {
         chunkId,
         timestamp: chunk.timestamp || Date.now()
       };
-
+  
+      console.log(`Transcription completed for chunk ${chunkId}:`, enhancedTranscription);
       return enhancedTranscription;
     } catch (error) {
       console.error(`Error transcribing chunk ${chunkId}:`, error);

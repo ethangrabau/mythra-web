@@ -16,6 +16,7 @@ export type SessionStatus =
   | 'processing'
   | 'transcribing'
   | 'completed'
+  | 'stopped'
   | 'failed';
 
 export interface SessionMetadata {

@@ -139,7 +139,9 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
 // Test function
 if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
-    const testPrompt = `Todd, the radiant Asmere Paladin, stands tall in his celestial armor...`;
+    const testPrompt = `There is a misty forest at the foot of a mountain. There is a team of 3 characters near a cave at the foot of the mountain: A brown skinned female elf warrior with black hair wears heavy armor, a bow and quiver of arrows are slung over her back, a short scruffy dwarf with leather clothing is holding a war hammer, and a humanoid dragon who is blue in color and wears traveling clothes, their dragon-like hand rests on the hilt of their sword in its scabbard.
+
+The brown female elf, the dwarf, and the blue humanoid dragon creep, trying not to be seen,  behind large boulders that flank the sides of the archway leading into a hall-like cavern. On the wall opposite the entrance there is an altar with glowing symbols and flame torches sparsely light the walls of the cavern. This is an action sequence where the characters are fighting a goblin.`;
     const testSessionId = `test-session-${Date.now()}`;
 
     try {

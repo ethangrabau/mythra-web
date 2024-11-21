@@ -30,13 +30,13 @@ export default function ImageDisplay({
   } = useImageNavigation(sessionId);
 
   // Debug logging
-  console.log('Image Display State:', {
-    hasNextImage,
-    hasPreviousImage,
-    totalImages,
-    currentImageIndex,
-    currentImage
-  });
+ // console.log('Image Display State:', {
+ //   hasNextImage,
+ //   hasPreviousImage,
+ //   totalImages,
+//  currentImageIndex,
+ //   currentImage
+ // });
 
   if (!currentImage) {
     return (

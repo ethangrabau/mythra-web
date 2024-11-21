@@ -45,20 +45,20 @@ export interface UseImageNavigation {
         try {
           setLoading(true);
           const normalizedId = normalizeSessionId(sessionId);
-          console.log('Normalized session ID:', {
-            original: sessionId,
-            normalized: normalizedId,
-            timestamp: Date.now()
-          });
+        //  console.log('Normalized session ID:', {
+        //    original: sessionId,
+        //    normalized: normalizedId,
+        //    timestamp: Date.now()
+        //  });
           
           // First try to get the latest image
           const latestResponse = await fetch(`http://localhost:3001/api/images/latest/${sessionId}`);
-          console.log('Latest image response:', latestResponse.status);
+         // console.log('Latest image response:', latestResponse.status);
           
           if (latestResponse.ok) {
             const latestData = await latestResponse.json() as ImageApiResponse;
             if (latestData.imagePath) {
-              console.log('Found latest image:', latestData.imagePath);
+            //  console.log('Found latest image:', latestData.imagePath);
               setState({
                 images: [latestData.imagePath],
                 totalImages: 1,

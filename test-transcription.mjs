@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import TranscriptionService from './src/lib/services/transcription.js';
 
-const TEST_DIRECTORY = '/Users/ethangrabau/Documents/mythra-web/test-chunks'; // Replace with the actual session ID
+const TEST_DIRECTORY = '/Users/ethangrabau/Documents/mythra-web/audio-chunks/session-1732151066544-f60ydu6'; // Replace with the actual session ID
 
 (async () => {
   try {
