@@ -20,7 +20,7 @@ export function SessionList({ sessions }: SessionListProps) {
     <div className='space-y-4'>
       {sessions.map((session: SessionWithId) => (
         <Link key={session._id.toString()} href={`/campaigns/${session.campaignId}/sessions/${session._id}`}>
-          <Card key={session._id.toString()} className='hover:shadow-md transition-shadow'>
+          <Card key={session._id.toString()} className='hover:shadow-md transition-shadow m-2'>
             <CardContent className='p-6'>
               <div className='flex justify-between items-start'>
                 <div className='space-y-4 flex-1'>
