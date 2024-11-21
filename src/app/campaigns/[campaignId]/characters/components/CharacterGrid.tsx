@@ -19,7 +19,18 @@ export const CharacterGrid = ({ characters }: CharacterGridProps) => {
     <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
       {characters.map((character: CharacterWithId) => (
         <Card key={character._id.toString()} className='overflow-hidden hover:shadow-lg transition-shadow'>
-          {character.name}
+          <div className='flex'>
+            <div className='relative w-48 h-64'>
+              {/* Character Image */}
+              <Image
+                src={character.imageUrl || '/placeholder-character.jpg'}
+                alt={character.name}
+                fill
+                className='object-cover'
+                sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+              />
+            </div>
+          </div>
         </Card>
       ))}
     </div>
