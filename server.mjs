@@ -92,50 +92,66 @@ server.on('connection', (socket) => {
             currentSession.setSocket(socket);
             activeSessions.set(sessionId, currentSession);
   
-            try {
-              await currentSession.startRecording();
-              
-              socket.send(JSON.stringify({
+            // Set session as "ready" but do not start recording
+            socket.send(
+              JSON.stringify({
                 type: 'status',
                 payload: { status: 'ready', sessionId },
                 sessionId,
                 timestamp: Date.now(),
-              }));
+              })
+            );
+          } else if (message.payload.action === 'startRecording') {
+            console.log('Server: Processing startRecording command...');
+            if (!currentSession) {
+              console.error('Server: No active session found');
+              return;
+            }
+  
+            try {
+              await currentSession.startRecording();
+              console.log('Server: Recording started');
+              socket.send(
+                JSON.stringify({
+                  type: 'status',
+                  payload: { status: 'recording', sessionId: currentSession.sessionId },
+                  sessionId: currentSession.sessionId,
+                  timestamp: Date.now(),
+                })
+              );
             } catch (error) {
               console.error('Server: Failed to start recording:', error);
-              await cleanupSession(currentSession);
-              currentSession = null;
               throw error;
             }
-          }
-          else if (message.payload.action === 'stop') {
+          } else if (message.payload.action === 'stop') {
             console.log('Server: Processing stop command with full message:', message);
             if (!currentSession) {
               console.error('Server: No active session found');
               return;
             }
-          
+  
             try {
               await currentSession.stopRecording();
               console.log('Server: Recording stopped, sending status update');
-              
+  
               // Ensure we update the session state
               currentSession.status = 'stopped';
-              
-              socket.send(JSON.stringify({
-                type: 'status',
-                payload: { 
-                  status: 'stopped', 
-                  sessionId: currentSession.sessionId 
-                },
-                sessionId: currentSession.sessionId,
-                timestamp: Date.now()
-              }));
+  
+              socket.send(
+                JSON.stringify({
+                  type: 'status',
+                  payload: {
+                    status: 'stopped',
+                    sessionId: currentSession.sessionId,
+                  },
+                  sessionId: currentSession.sessionId,
+                  timestamp: Date.now(),
+                })
+              );
             } catch (error) {
               console.error('Server: Error during stop:', error);
             }
-          }
-          else if (message.payload.action === 'end') {
+          } else if (message.payload.action === 'end') {
             console.log('Server: Processing end command...');
             if (!currentSession) {
               console.error('Server: No active session to end');
@@ -145,27 +161,32 @@ server.on('connection', (socket) => {
             await cleanupSession(currentSession);
             currentSession = null;
   
-            socket.send(JSON.stringify({
-              type: 'session_ended',
-              sessionId: message.payload.sessionId,
-              timestamp: Date.now(),
-            }));
+            socket.send(
+              JSON.stringify({
+                type: 'session_ended',
+                sessionId: message.payload.sessionId,
+                timestamp: Date.now(),
+              })
+            );
           }
           break;
-
+  
         default:
           console.warn('Unknown message type:', message.type);
           break;
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      socket.send(JSON.stringify({
-        type: 'error',
-        payload: { message: error.message },
-        timestamp: Date.now(),
-      }));
+      socket.send(
+        JSON.stringify({
+          type: 'error',
+          payload: { message: error.message },
+          timestamp: Date.now(),
+        })
+      );
     }
   });
+  
 
   // Update the close handler
 socket.on('close', async () => {

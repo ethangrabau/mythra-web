@@ -1,17 +1,18 @@
 'use client';
 
-import { PlayCircle, StopCircle } from 'lucide-react';
+import { PlayCircle, StopCircle, RotateCcw } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 import ImageDisplay from '@/components/ImageDisplay';
 import { cn } from '@/lib/utils/ui';
 
 const SessionPage = () => {
   const params = useParams();
+  const router = useRouter();
   const sessionIdFromUrl = params?.sessionId as string;
-  
+
   const {
     isRecording,
     startRecording,
@@ -20,7 +21,7 @@ const SessionPage = () => {
     transcriptions,
     isConnected,
     error: hookError,
-    startSession // Add this
+    startSession,
   } = useAudioRecorder();
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -31,13 +32,13 @@ const SessionPage = () => {
       console.log('Connecting to existing session:', sessionIdFromUrl);
       startSession(sessionIdFromUrl).catch((err) => {
         console.warn('Error connecting to session:', err);
-      
+
         // Suppress specific session connection error
         if (err.message.includes('WebSocket is not connected')) {
           console.warn('Suppressing session connection error');
           return;
         }
-      
+
         setError('Failed to connect to session');
       });
     }
@@ -62,13 +63,42 @@ const SessionPage = () => {
     }
   };
 
+  const handleRestart = async () => {
+    try {
+      // Stop the current recording session (if recording)
+      setError(null); // Clear any previous errors
+      if (isRecording) {
+        handleStopRecording();
+      }
+
+      // Delete the memory log file via the API
+      const response = await fetch('/api/delete-memory-log', { method: 'POST' });
+      if (!response.ok) {
+        throw new Error('Failed to delete memory log');
+      }
+
+      console.log('Memory log deleted successfully.');
+
+      // Start a new session
+      const newSessionId = await startSession();
+
+      // Navigate to the new session page
+      if (newSessionId) {
+        router.push(`/session/${newSessionId}`);
+      }
+    } catch (err) {
+      console.error('Failed to restart session:', err);
+      setError(err instanceof Error ? err.message : 'Failed to restart session');
+    }
+  };
+
   // Add debug logging
   useEffect(() => {
     console.log('Session state:', {
       urlSessionId: sessionIdFromUrl,
       hookSessionId: sessionData?.sessionId,
       isRecording,
-      isConnected
+      isConnected,
     });
   }, [sessionIdFromUrl, sessionData?.sessionId, isRecording, isConnected]);
 
@@ -84,10 +114,12 @@ const SessionPage = () => {
       {/* Main content */}
       <div className="flex h-full">
         {/* Transcript panel */}
-        <div className={cn(
-          "transition-all duration-300 ease-in-out",
-          isFullscreen ? "w-0 opacity-0" : "w-1/3 opacity-100"
-        )}>
+        <div
+          className={cn(
+            'transition-all duration-300 ease-in-out',
+            isFullscreen ? 'w-0 opacity-0' : 'w-1/3 opacity-100'
+          )}
+        >
           <div className="h-full overflow-auto">
             <div className="p-4 space-y-4">
               <div>
@@ -98,7 +130,7 @@ const SessionPage = () => {
               </div>
 
               {/* Recording controls */}
-              <div>
+              <div className="flex items-center space-x-4">
                 {!isRecording ? (
                   <button
                     onClick={handleStartRecording}
@@ -117,6 +149,13 @@ const SessionPage = () => {
                     Stop Recording
                   </button>
                 )}
+                <button
+                  onClick={handleRestart}
+                  className="p-4 rounded-lg bg-yellow-600 text-white hover:bg-yellow-700 transition-all"
+                >
+                  <RotateCcw className="w-6 h-6 inline-block mr-2" />
+                  Restart Session
+                </button>
               </div>
 
               {/* Transcription viewer */}
@@ -131,10 +170,12 @@ const SessionPage = () => {
         </div>
 
         {/* Image display */}
-        <div className={cn(
-          "transition-all duration-300 ease-in-out",
-          isFullscreen ? "w-full" : "w-2/3"
-        )}>
+        <div
+          className={cn(
+            'transition-all duration-300 ease-in-out',
+            isFullscreen ? 'w-full' : 'w-2/3'
+          )}
+        >
           <ImageDisplay
             sessionId={sessionData?.sessionId || ''}
             isFullscreen={isFullscreen}

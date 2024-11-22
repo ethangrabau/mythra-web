@@ -156,27 +156,30 @@ export function useAudioRecorder(): AudioRecorderHook {
       if (!isConnected) {
         throw new Error('WebSocket is not connected');
       }
-
+  
       const newSessionId =
         providedSessionId || `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
+  
       const message = createWebSocketMessage(
         'command',
         { action: 'start', sessionId: newSessionId },
         newSessionId
       );
-
+  
       if (socketRef.current?.readyState === WebSocket.OPEN) {
+        // Send message to initialize session without starting recording
         socketRef.current.send(JSON.stringify(message));
-        setSessionActive(true);
+  
+        // Update UI to indicate the session is ready but not recording
+        setSessionActive(false); // Ensure recording isn't active yet
         setTranscriptions([]);
         setSessionData({
           ...defaultSessionData,
           sessionId: newSessionId,
           startTime: Date.now(),
-          status: 'ready',
+          status: 'ready', // Explicitly set session status as ready
         });
-
+  
         return newSessionId;
       } else {
         throw new Error('WebSocket is not in an open state');
@@ -187,6 +190,7 @@ export function useAudioRecorder(): AudioRecorderHook {
       throw err;
     }
   }, [isConnected]);
+  
 
   const startRecording = useCallback(async () => {
     try {

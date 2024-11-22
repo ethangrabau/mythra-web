@@ -19,3 +19,7 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.button-spacing {
+  margin-bottom: 16px; /* Adjust the spacing as needed */
+}
