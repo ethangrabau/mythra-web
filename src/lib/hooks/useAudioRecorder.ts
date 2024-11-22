@@ -2,17 +2,17 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  SessionMetadata,
-  WebSocketMessage,
-  TranscriptionData,
-  SessionStatus,
+import { 
+  SessionMetadata, 
+  WebSocketMessage, 
+  TranscriptionData, 
+  SessionStatus, 
   WebSocketPayload,
   defaultSessionData,
   AudioRecorderHook,
-  WebSocketMessageType
+  WebSocketMessageType,
+  QueuedMessage  // Add this import
 } from '../types/audio';
-
 
 
 const createWebSocketMessage = (
@@ -37,6 +37,35 @@ export function useAudioRecorder(): AudioRecorderHook {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const lastMessageRef = useRef<string | null>(null);
+  const messageQueue = useRef<QueuedMessage[]>([]);
+
+
+  useEffect(() => {
+    console.log('Debug - transcriptions state updated:', {
+      count: transcriptions.length,
+      transcriptions,
+      isRecording,
+      sessionActive
+    });
+  }, [transcriptions, isRecording, sessionActive]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isConnected) {
+        console.log('Debug - Connection Status:', {
+          isConnected,
+          socketState: socketRef.current?.readyState,
+          transcriptionCount: transcriptions.length,
+          sessionActive,
+          isRecording,
+          sessionId: sessionData?.sessionId
+        });
+      }
+    }, 5000);
+  
+    return () => clearInterval(interval);
+  }, [isConnected, transcriptions.length, sessionActive, isRecording, sessionData]);
 
   const sendWebSocketMessage = useCallback((message: WebSocketMessage) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -45,103 +74,107 @@ export function useAudioRecorder(): AudioRecorderHook {
   }, []);
 
   const connectWebSocket = useCallback(() => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) return;
-
+    // Early return if already connected
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected, skipping connection attempt');
+      return;
+    }
+  
+    // Close existing connection if any
+    if (socketRef.current) {
+      console.log('Closing existing WebSocket connection');
+      socketRef.current.close();
+    }
+  
     console.log('Initializing WebSocket connection...', process.env.NEXT_PUBLIC_WS_URL);
     const ws = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080');
-
+  
     ws.onopen = () => {
       console.log('WebSocket connected successfully');
       setIsConnected(true);
       reconnectAttempts.current = 0;
       setError(null);
     };
-
+  
     ws.onclose = (event) => {
-      console.log('WebSocket disconnected', event.code, event.reason);
+      console.log('Debug - WebSocket disconnected:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean
+      });
       setIsConnected(false);
-      setIsRecording(false); // Ensure recording state is reset on disconnect
-
+      
       if (reconnectAttempts.current < maxReconnectAttempts) {
-        console.log(`Attempting to reconnect (${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+        console.log(`Debug - Attempting to reconnect (${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
         reconnectAttempts.current++;
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
-        setTimeout(connectWebSocket, delay);
-      } else {
-        setError('Unable to connect to server. Please check if the server is running and refresh the page.');
+        // Use fixed delay instead of exponential
+        setTimeout(connectWebSocket, 2000);
       }
     };
-
+  
     ws.onerror = (err) => {
       console.warn('WebSocket error:', err);
       
-      // Suppress connection-related errors
       if (!isConnected) {
         console.warn('Suppressing WebSocket connection error');
         return;
       }
-    
+      
       setError('Failed to connect to server. Is the server running?');
     };
-
+  
     ws.onmessage = async (event) => {
       try {
         const message = JSON.parse(event.data) as WebSocketMessage;
-        console.log('Received message:', message);
-
+        console.log('Debug - Received WebSocket message:', message);
+    
+        const messageKey = `${message.type}-${message.timestamp}`;
+        if (lastMessageRef.current === messageKey) {
+          console.log('Debug - Duplicate message detected, skipping');
+          return;
+        }
+        lastMessageRef.current = messageKey;
+    
         switch (message.type) {
-          case 'error': {
-            setError(message.payload.message || null);
-            break;
-          }
-          case 'recording_complete': {
-            setIsRecording(false);
-            setSessionData((prev) =>
-              prev ? { ...prev, status: 'completed' } : defaultSessionData
-            );
+          case 'transcription': {
+            console.log('Debug - Processing transcription message:', message);
+          
             if (message.payload.transcription) {
-              setTranscriptions((prev) => [...prev, message.payload.transcription!]);
+              const transcription = message.payload.transcription;
+              
+              setTranscriptions(prev => {
+                const updated = [...(prev || []), transcription];
+                console.log('Transcriptions updated:', {
+                  previousCount: prev?.length || 0,
+                  newCount: updated.length,
+                  latest: transcription.text
+                });
+                return updated;
+              });
             }
             break;
           }
           case 'status': {
-            console.log('Frontend: Received status update:', message.payload.status);
-            console.log('Frontend: Current isRecording state before update:', isRecording);
+            console.log('Debug - Processing status update:', {
+              newStatus: message.payload.status,
+              currentStatus: sessionData?.status,
+              isRecording,
+              sessionActive
+            });
+    
             setSessionData((prev) => ({
               ...(prev || defaultSessionData),
               sessionId: message.payload.sessionId || prev?.sessionId || '',
               status: message.payload.status as SessionStatus,
+              lastUpdate: Date.now()
             }));
           
-            // Update recording state based on status
-            if (message.payload.status === 'recording' && sessionActive) { // Only set to true if sessionActive
-              console.log('Frontend: Setting recording state to true');
+            if (message.payload.status === 'recording' && sessionActive) {
+              console.log('Debug - Setting recording to true');
               setIsRecording(true);
-              console.log('isRecording updated to true:', isRecording);
             } else if (['completed', 'failed', 'stopped'].includes(message.payload.status || '')) {
-              console.log('Setting recording state to false');
+              console.log('Debug - Setting recording to false');
               setIsRecording(false);
-            }
-            break;
-          }
-          case 'transcription': {
-            console.log('Frontend: Received transcription message:', message);
-          
-            if (message.payload.transcription) {
-              const transcription = message.payload.transcription;
-          
-              // Ensure transcription is of type TranscriptionData
-              if (transcription && typeof transcription.text === 'string' && typeof transcription.timestamp === 'number') {
-                console.log('Frontend: Adding transcription:', transcription);
-          
-                setTranscriptions((prev) => {
-                  const updated = [...prev, transcription];
-                  console.log('Frontend: Updated transcriptions state:', updated);
-                  return updated;
-                });
-              } else {
-                console.error('Invalid transcription data received:', transcription);
-              }
             }
             break;
           }
@@ -158,9 +191,9 @@ export function useAudioRecorder(): AudioRecorderHook {
         console.error('Error processing message:', err);
       }
     };
-
+  
     socketRef.current = ws;
-  }, [sessionActive]);
+  }, []);
 
   useEffect(() => {
     connectWebSocket();

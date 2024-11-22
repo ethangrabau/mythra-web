@@ -3,12 +3,8 @@ import { PATHS } from '../constants/paths.js';
 import fs from 'fs/promises';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
-
 import { RecordingService } from './recordingService.js';
 
-// Fix for __dirname in ES modules
-
-// Get root project directory (2 levels up from services folder)
 const { AUDIO_DIR, RECORDINGS_DIR, METADATA_DIR } = PATHS;
 
 // Ensure necessary directories exist
@@ -24,7 +20,7 @@ export class AudioSession {
     this.status = 'ready';
     this.transcriptionService = transcriptionService;
     this.socket = null;
-    this._processedChunks = new Set();  // Add this line
+    this._processedChunks = new Set();
     this.metadata = {
       totalDuration: 0,
       totalSize: 0,
@@ -34,8 +30,46 @@ export class AudioSession {
     };
     
     this.recordingService = new RecordingService();
+
+    // Add event handlers for transcription service
+    this.transcriptionService.on('transcription', (transcriptionData) => {
+      console.log('AudioSession: Received transcription event:', transcriptionData);
+      this.handleTranscriptionEvent(transcriptionData);
+    });
+
+    this.transcriptionService.on('error', (error) => {
+      console.error('AudioSession: Transcription error:', error);
+      this.sendError(`Transcription error: ${error.message}`);
+    });
   }
 
+  // Add new method to handle transcription events
+  handleTranscriptionEvent(transcriptionData) {
+    try {
+      if (!this.socket) {
+        console.warn('AudioSession: No socket connection available for sending transcription');
+        return;
+      }
+
+      console.log('AudioSession: Sending transcription event to client:', transcriptionData);
+      
+      const message = {
+        type: 'transcription',
+        payload: {
+          transcription: transcriptionData
+        },
+        sessionId: this.sessionId,
+        timestamp: Date.now()
+      };
+
+      this.socket.send(JSON.stringify(message));
+      console.log('AudioSession: Transcription event sent to client successfully');
+    } catch (error) {
+      console.error('AudioSession: Error sending transcription to client:', error);
+    }
+  }
+
+  // Your existing methods remain unchanged
   setSocket(socket) {
     this.socket = socket;
   }
@@ -67,16 +101,11 @@ export class AudioSession {
       this.status = 'recording';
       this.sendStatus('Starting recording...');
   
-      // Start recording with callback for completed chunks
       this.recordingService.startRecording(this.sessionId, async (sessionId, chunkId, filePath) => {
         try {
-          // Read the chunk file
           const data = await fs.readFile(filePath);
-          
-          // Process the chunk (which handles transcription)
           await this.processChunk(chunkId, data);
           
-          // Send acknowledgment to client
           if (this.socket) {
             this.socket.send(JSON.stringify({
               type: 'ack',
@@ -225,15 +254,7 @@ export class AudioSession {
       
       const transcription = await this.transcriptionService.transcribeFile(chunk.path, this.sessionId);
       
-      // Add chunk metadata to transcription
-      const enhancedTranscription = {
-        ...transcription,
-        chunkId,
-        timestamp: chunk.timestamp || Date.now()
-      };
-  
-      console.log(`Transcription completed for chunk ${chunkId}:`, enhancedTranscription);
-      return enhancedTranscription;
+      return transcription;
     } catch (error) {
       console.error(`Error transcribing chunk ${chunkId}:`, error);
       return null;

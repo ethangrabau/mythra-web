@@ -2,10 +2,12 @@
 import fs from 'fs';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
+import { EventEmitter } from 'events';
 import { OPENAI_API_KEY } from '../../env.js';
 
-export default class TranscriptionService {
+export default class TranscriptionService extends EventEmitter {
   constructor() {
+    super();
     this.apiKey = OPENAI_API_KEY;
     if (!this.apiKey) {
       throw new Error('OpenAI API key is missing');
@@ -28,9 +30,8 @@ export default class TranscriptionService {
       const form = new FormData();
       const fileBuffer = fs.readFileSync(filePath);
       
-      // Add file with explicit content type
       form.append('file', fileBuffer, {
-        filename: 'audio.webm', // Change to .webm
+        filename: 'audio.webm',
         contentType: 'audio/webm',
       });
 
@@ -55,15 +56,22 @@ export default class TranscriptionService {
       }
 
       const result = await response.json();
-      console.log('TranscriptionService: Transcription successful');
+      console.log('TranscriptionService: Transcription successful:', result);
 
-      return {
+      const transcriptionData = {
         text: result.text,
         timestamp: Date.now(),
         sessionId,
       };
+
+      // Emit the transcription event
+      console.log('TranscriptionService: Emitting transcription event:', transcriptionData);
+      this.emit('transcription', transcriptionData);
+
+      return transcriptionData;
     } catch (error) {
       console.error('TranscriptionService: Error during transcription:', error);
+      this.emit('error', error);
       throw error;
     }
   }

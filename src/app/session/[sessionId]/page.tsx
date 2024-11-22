@@ -117,6 +117,7 @@ const SessionPage = () => {
                 <RotateCcw className="w-6 h-6 inline-block mr-2" />
                 Restart Session
               </button>
+            
             </div>
 
             <TranscriptionViewer
