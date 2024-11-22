@@ -1,14 +1,15 @@
-export const generateMemoryPrompt = (transcription, memory) => {
+export const generateMemoryPrompt = (transcription, memory, recentContext) => {
     return `
       You are managing a dynamic memory table for a Dungeons and Dragons game (DND). 
       The memory table contains characters, items, and locations. 
 
       You will receive:
-        1. The current transcription.
-        2. The current memory table.
+        1. The current new line of transcription.
+        2. Recent context (previous lines of transcription to give you a brief background and understanding of the current transcript)
+        2. The current memory table with characters, items, and locations along with their descriptions that you will be updating.
   
       ### Your Task ###
-      Based on the new transcription and current memory table, update the memory table to include any new or updated details. 
+      Based on the new transcription, recent context, and the current memory table, update the memory table to include any new or updated details that would be important to retain for visual reference only. The goal of the memory table to is to act as a reference to generate images, so please focus on visual descriptions. 
       - Do not delete or remove existing entries unless explicitly contradicted in the transcription.
       - Merge any duplicate or overlapping entries. For example, if "Bruce the warrior" and "Bruce" refer to the same character, combine their details into a single entry.
       - Include only details explicitly mentioned in the transcription.
@@ -18,6 +19,9 @@ export const generateMemoryPrompt = (transcription, memory) => {
   
       ### Memory Table Before Update ###
       ${JSON.stringify(memory, null, 2)}
+
+      ### Recent Context ###
+      "${recentContext}"
   
       ### New Transcription ###
       "${transcription}"
@@ -28,21 +32,21 @@ export const generateMemoryPrompt = (transcription, memory) => {
       ### Examples ###
   
       Example 1:
-      Transcription: "Bruce, a tall Goliath warrior with a glowing sword, stands on the edge of the battlefield."
+      Current Transcription: "Bruce, a tall Goliath warrior with a glowing sword, stands on the edge of the battlefield."
+      Recent Transcription: "Azghol, the dark sorcerer, watches from the shadows."
       Memory Table Before Update:
       {
         "characters": [
-          { "name": "Bruce", "description": "A Goliath warrior." }
+          { "name": "Azghol", "description": "dark sorcerer, lurks in shadows" }
         ],
-        "items": [
-          { "name": "Glowing Sword", "description": "A faintly glowing sword." }
-        ],
+        "items": [],
         "locations": []
       }
       Updated Memory Table:
       {
         "characters": [
-          { "name": "Bruce", "description": "A tall Goliath warrior with a glowing sword, standing on the edge of the battlefield." }
+          { "name": "Bruce", "description": "A tall Goliath warrior with a Glowing Sword" }
+          { "name": "Azghol", "description": "dark sorcerer, lurks in shadows" }
         ],
         "items": [
           { "name": "Glowing Sword", "description": "A faintly glowing sword owned by Bruce." }
@@ -61,10 +65,10 @@ export const generateMemoryPrompt = (transcription, memory) => {
       Updated Memory Table:
       {
         "characters": [
-          { "name": "Todd", "description": "A radiant Asmere Paladin studying an ancient map in the ruins of a temple." }
+          { "name": "Todd", "description": "A radiant Asmere Paladin" }
         ],
         "items": [
-          { "name": "Ancient Map", "description": "A weathered map being studied by Todd." }
+          { "name": "Ancient Map", "description": "A weathered map, held by Todd" }
         ],
         "locations": [
           { "name": "Temple Ruins", "description": "A long-forgotten temple with ancient ruins." }
@@ -98,7 +102,7 @@ export const generateMemoryPrompt = (transcription, memory) => {
         ],
         "locations": [
           { "name": "Temple Ruins", "description": "A long-forgotten temple with ancient ruins." },
-          { "name": "Mossy Cave", "description": "A dark cave covered in moss, where Bruce and Todd were ambushed." }
+          { "name": "Mossy Cave", "description": "A dark cave covered in moss" }
         ]
       }
   

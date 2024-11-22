@@ -17,7 +17,10 @@ const transcriptionDir = path.join(__dirname, 'metadata');
 const memoryFilePath = path.join(transcriptionDir, 'memory-log.txt');
 const imagesDirPath = path.join(__dirname, 'generated_images');
 
-// Ensure images directory exists
+// Ensure required directories exist
+if (!fs.existsSync(transcriptionDir)) {
+  fs.mkdirSync(transcriptionDir, { recursive: true });
+}
 if (!fs.existsSync(imagesDirPath)) {
   fs.mkdirSync(imagesDirPath);
 }
@@ -27,8 +30,10 @@ let memory = {
   characters: [],
   items: [],
   locations: [],
-  processedChunks: [],
 };
+
+// Track processed chunks by session
+//const processedChunks = new Map(); // sessionId -> Set of processed chunkIds
 
 // Load memory
 const loadMemory = () => {
@@ -37,38 +42,88 @@ const loadMemory = () => {
       const data = fs.readFileSync(memoryFilePath, 'utf-8');
       memory = JSON.parse(data);
       console.log('Memory loaded:', memory);
+    } else {
+      // Initialize empty memory file if it doesn't exist
+      const initialMemory = {
+        characters: [],
+        items: [],
+        locations: [],
+      };
+      saveMemory(JSON.stringify(initialMemory, null, 2));
+      memory = initialMemory;
+      console.log('Created new memory file with initial state');
     }
   } catch (err) {
     console.error('Error loading memory, starting fresh:', err);
+    memory = {
+      characters: [],
+      items: [],
+      locations: [],
+    };
   }
 };
 
-// Save memory
+// Updated saveMemory function (removed redundant directory check)
 const saveMemory = (memoryUpdate) => {
   try {
-    fs.writeFileSync(memoryFilePath, memoryUpdate);
-    console.log('Memory updated successfully.');
+    console.log('Saving memory to:', memoryFilePath);
+    console.log('Memory content:', memoryUpdate);
+
+    // If memoryUpdate is an object, stringify it
+    const contentToWrite = typeof memoryUpdate === 'string' 
+      ? memoryUpdate 
+      : JSON.stringify(memoryUpdate, null, 2);
+
+    fs.writeFileSync(memoryFilePath, contentToWrite);
+    console.log('Memory file saved successfully at:', memoryFilePath);
   } catch (err) {
     console.error('Error saving memory:', err);
+    console.error('Failed path:', memoryFilePath);
+    console.error('Content type:', typeof memoryUpdate);
+    console.error('Error details:', err.message);
   }
 };
 
-// Process memory and generate image based on saved transcription
+// Process new transcription with context
 const processTranscriptionData = async (transcriptionData) => {
-  const { text, sessionId } = transcriptionData;
+  const { transcriptions, sessionId } = transcriptionData;
   const normalizedSessionId = normalizeSessionId(sessionId);
+  
+  // Get the latest transcription
+  const newTranscription = transcriptions[transcriptions.length - 1];
 
-  console.log('Processing memory and images for:', {
-    text,
+  if (!newTranscription) return; // Nothing new to process
+  
+  // Get recent context (last 3 transcriptions before the new one)
+  const recentContext = transcriptions
+    .slice(-4, -1) // Get up to 3 previous transcriptions
+    .map(t => t.text)
+    .join(' ');
+
+  console.log('Processing new transcription:', {
+    text: newTranscription.text,
+    context: recentContext,
     sessionId: normalizedSessionId,
   });
 
-  const recentActivity = memory.processedChunks.slice(-5).join(' ');
-
-  // Only handle memory and image generation, NOT transcription
   try {
-    // 1. Update memory
-    const prompt = generateMemoryPrompt(text, memory);
+    // 1. Generate image first (for lower latency)
+    console.log('Generating image prompt...');
+    const imagePrompt = await generateImagePrompt(
+      newTranscription.text, 
+      recentContext,
+      memory
+    );
+    if (imagePrompt) {
+      console.log('Image prompt received:', imagePrompt);
+      const imagePath = await generateImageFlux(imagePrompt, normalizedSessionId);
+      if (imagePath) {
+        console.log(`Image generated and saved at: ${imagePath}`);
+      }
+    }
+
+    // 2. Update memory after image generation
+    const prompt = generateMemoryPrompt(newTranscription.text, memory, recentContext);
     console.log('Calling LLM for memory updates...');
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
@@ -77,27 +132,19 @@ const processTranscriptionData = async (transcriptionData) => {
 
     const updatedMemory = response.choices[0]?.message?.content;
     if (updatedMemory) {
-      saveMemory(updatedMemory);
-      memory = { ...memory, raw: updatedMemory };
-      console.log('Memory updated successfully.');
-    }
-
-    // 2. Generate image if needed
-    console.log('Generating image prompt...');
-    const imagePrompt = await generateImagePrompt(text, recentActivity, memory);
-    if (imagePrompt) {
-      console.log('Image prompt received:', imagePrompt);
-      const imagePath = await generateImageFlux(imagePrompt, normalizedSessionId);
-      if (imagePath) {
-        console.log(`Image generated and saved at: ${imagePath}`);
+      console.log('Received memory update:', updatedMemory);
+      try {
+        memory = JSON.parse(updatedMemory);
+        saveMemory(JSON.stringify(memory, null, 2));
+        console.log('Memory state updated:', memory);
+      } catch (err) {
+        console.error('Error parsing memory update:', err);
       }
     }
   } catch (error) {
-    console.error('Error processing memory/image:', error);
+    console.error('Error processing transcription:', error);
   }
 };
-
-const processedFiles = new Set(); // Track already-processed files
 
 const startFileWatcher = () => {
   console.log('Starting file watcher...');
@@ -108,11 +155,6 @@ const startFileWatcher = () => {
     if (filename && filename.endsWith('-transcription.json')) {
       const filePath = path.join(transcriptionDir, filename);
 
-      // Skip if already processed
-      if (processedFiles.has(filePath)) {
-        return; // File already processed, skip
-      }
-
       fs.readFile(filePath, 'utf-8', async (err, data) => {
         if (err) {
           console.error(`Error reading transcription file ${filename}:`, err);
@@ -121,17 +163,8 @@ const startFileWatcher = () => {
 
         try {
           const transcriptionData = JSON.parse(data);
-
-          const { transcriptions = [] } = transcriptionData;
-          const latestTranscription = transcriptions[transcriptions.length - 1];
-          if (latestTranscription?.text) {
-            await processTranscriptionData({
-              text: latestTranscription.text,
-              sessionId: transcriptionData.sessionId,
-            });
-
-            // Mark file as processed
-            processedFiles.add(filePath);
+          if (transcriptionData.transcriptions?.length > 0) {
+            await processTranscriptionData(transcriptionData);
           }
         } catch (err) {
           console.error('Error processing transcription file:', err);
@@ -139,7 +172,7 @@ const startFileWatcher = () => {
       });
     }
   });
-}; 
+};
 
 export const fileWatcher = {
   start: startFileWatcher,
