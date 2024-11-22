@@ -73,7 +73,14 @@ export function useAudioRecorder(): AudioRecorderHook {
     };
 
     ws.onerror = (err) => {
-      console.error('WebSocket error:', err);
+      console.warn('WebSocket error:', err);
+      
+      // Suppress connection-related errors
+      if (!isConnected) {
+        console.warn('Suppressing WebSocket connection error');
+        return;
+      }
+    
       setError('Failed to connect to server. Is the server running?');
     };
 
@@ -104,9 +111,9 @@ export function useAudioRecorder(): AudioRecorderHook {
               sessionId: message.payload.sessionId || prev?.sessionId || '',
               status: message.payload.status as SessionStatus,
             }));
-            
+          
             // Update recording state based on status
-            if (message.payload.status === 'recording') {
+            if (message.payload.status === 'recording' && sessionActive) { // Only set to true if sessionActive
               console.log('Frontend: Setting recording state to true');
               setIsRecording(true);
             } else if (['completed', 'failed', 'stopped'].includes(message.payload.status || '')) {
@@ -135,7 +142,7 @@ export function useAudioRecorder(): AudioRecorderHook {
     };
 
     socketRef.current = ws;
-  }, []);
+  }, [sessionActive]);
 
   useEffect(() => {
     connectWebSocket();
@@ -167,7 +174,7 @@ export function useAudioRecorder(): AudioRecorderHook {
           ...defaultSessionData,
           sessionId: newSessionId,
           startTime: Date.now(),
-          status: 'initializing',
+          status: 'ready',
         });
 
         return newSessionId;
@@ -175,7 +182,7 @@ export function useAudioRecorder(): AudioRecorderHook {
         throw new Error('WebSocket is not in an open state');
       }
     } catch (err) {
-      console.error('Error starting session:', err);
+      console.warn('Error starting session:', err);
       setError(err instanceof Error ? err.message : 'Failed to start session');
       throw err;
     }

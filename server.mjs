@@ -97,7 +97,7 @@ server.on('connection', (socket) => {
               
               socket.send(JSON.stringify({
                 type: 'status',
-                payload: { status: 'recording', sessionId },
+                payload: { status: 'ready', sessionId },
                 sessionId,
                 timestamp: Date.now(),
               }));

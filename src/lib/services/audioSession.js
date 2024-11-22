@@ -21,7 +21,7 @@ export class AudioSession {
     this.sessionId = sessionId;
     this.startTime = Date.now();
     this.chunks = new Map();
-    this.status = 'initializing';
+    this.status = 'ready';
     this.transcriptionService = transcriptionService;
     this.socket = null;
     this._processedChunks = new Set();  // Add this line

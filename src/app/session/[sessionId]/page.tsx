@@ -29,8 +29,15 @@ const SessionPage = () => {
   useEffect(() => {
     if (sessionIdFromUrl && !sessionData) {
       console.log('Connecting to existing session:', sessionIdFromUrl);
-      startSession(sessionIdFromUrl).catch(err => {
-        console.error('Error connecting to session:', err);
+      startSession(sessionIdFromUrl).catch((err) => {
+        console.warn('Error connecting to session:', err);
+      
+        // Suppress specific session connection error
+        if (err.message.includes('WebSocket is not connected')) {
+          console.warn('Suppressing session connection error');
+          return;
+        }
+      
         setError('Failed to connect to session');
       });
     }
