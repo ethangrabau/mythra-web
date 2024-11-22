@@ -1,7 +1,7 @@
 import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
 // Quest Interface
-interface IQuest extends Document {
+export interface IQuest extends Document {
   campaignId: Types.ObjectId;
   name: string;
   description: string;
