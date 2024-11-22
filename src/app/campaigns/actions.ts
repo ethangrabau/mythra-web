@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import dbConnect from '@/lib/db';
+import '../../lib/models/Player';
 import { Campaign } from '@/lib/models/Campaign';
 
 export async function getCampaigns() {
