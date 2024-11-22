@@ -19,8 +19,17 @@ export default function TranscriptionViewer({
 }: TranscriptionViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Debug log for initial render
+  console.log('TranscriptionViewer: Render with props:', {
+    sessionId,
+    isRecording,
+    transcriptionCount: transcriptions?.length || 0,
+    transcriptions
+  });
+
   // Auto-scroll to the latest transcription when updated
   useEffect(() => {
+    console.log('TranscriptionViewer: Running auto-scroll effect for transcriptions.');
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
@@ -37,6 +46,7 @@ export default function TranscriptionViewer({
   };
 
   if (!transcriptions?.length) {
+    console.log('TranscriptionViewer: No transcriptions to display. Showing placeholder UI.');
     return (
       <Card>
         <div className="rounded-lg bg-gray-50 p-8 text-center text-gray-500">
@@ -52,6 +62,8 @@ export default function TranscriptionViewer({
       </Card>
     );
   }
+
+  console.log('TranscriptionViewer: Rendering transcriptions:', transcriptions);
 
   return (
     <Card>

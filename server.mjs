@@ -25,6 +25,7 @@ const cleanupSession = async (session) => {
   if (!session) return;
   
   try {
+    console.log('Server: Starting cleanup of session:', session.sessionId);
     // Stop recording if active
     if (session.recordingService.isRecording(session.sessionId)) {
       await session.stopRecording();
@@ -34,7 +35,9 @@ const cleanupSession = async (session) => {
     await session.finalize();
     
     // Clear from active sessions
-    activeSessions.delete(session.sessionId);
+    const removed = activeSessions.delete(session.sessionId);
+    console.log('Server: Session removed from active sessions:', removed);
+    console.log('Server: Remaining active sessions:', activeSessions.size);
   } catch (error) {
     console.error('Error cleaning up session:', error);
   }
@@ -71,106 +74,122 @@ server.on('connection', (socket) => {
   
       switch (message.type) {
         case 'command':
-          if (message.payload.action === 'start') {
-            console.log('Server: Processing start command...');
-            // Clean up existing session if there is one
-            if (currentSession) {
-              console.log('Server: Cleaning up existing session:', currentSession.sessionId);
-              await cleanupSession(currentSession);
-              currentSession = null;
-            }
-  
-            const sessionId = message.payload.sessionId || `session-${Date.now()}`;
-            console.log('Server: Starting new session:', sessionId);
-  
-            // Create session directory
-            const sessionDir = join(AUDIO_DIR, sessionId);
-            await fs.mkdir(sessionDir, { recursive: true });
-  
-            // Initialize new session
-            currentSession = new AudioSession(sessionId, transcriptionService);
-            currentSession.setSocket(socket);
-            activeSessions.set(sessionId, currentSession);
-  
-            // Set session as "ready" but do not start recording
-            socket.send(
-              JSON.stringify({
-                type: 'status',
-                payload: { status: 'ready', sessionId },
-                sessionId,
-                timestamp: Date.now(),
-              })
-            );
-          } else if (message.payload.action === 'startRecording') {
-            console.log('Server: Processing startRecording command...');
-            if (!currentSession) {
-              console.error('Server: No active session found');
-              return;
-            }
-  
-            try {
-              await currentSession.startRecording();
-              console.log('Server: Recording started');
-              socket.send(
-                JSON.stringify({
-                  type: 'status',
-                  payload: { status: 'recording', sessionId: currentSession.sessionId },
-                  sessionId: currentSession.sessionId,
-                  timestamp: Date.now(),
-                })
-              );
-            } catch (error) {
-              console.error('Server: Failed to start recording:', error);
-              throw error;
-            }
-          } else if (message.payload.action === 'stop') {
-            console.log('Server: Processing stop command with full message:', message);
-            if (!currentSession) {
-              console.error('Server: No active session found');
-              return;
-            }
-  
-            try {
-              await currentSession.stopRecording();
-              console.log('Server: Recording stopped, sending status update');
-  
-              // Ensure we update the session state
-              currentSession.status = 'stopped';
-  
-              socket.send(
-                JSON.stringify({
-                  type: 'status',
-                  payload: {
-                    status: 'stopped',
-                    sessionId: currentSession.sessionId,
-                  },
-                  sessionId: currentSession.sessionId,
-                  timestamp: Date.now(),
-                })
-              );
-            } catch (error) {
-              console.error('Server: Error during stop:', error);
-            }
-          } else if (message.payload.action === 'end') {
-            console.log('Server: Processing end command...');
-            if (!currentSession) {
-              console.error('Server: No active session to end');
-              throw new Error('No active session to end');
-            }
-  
-            await cleanupSession(currentSession);
-            currentSession = null;
-  
-            socket.send(
-              JSON.stringify({
-                type: 'session_ended',
-                sessionId: message.payload.sessionId,
-                timestamp: Date.now(),
-              })
-            );
-          }
-          break;
-  
+  if (message.payload.action === 'start') {
+    console.log('Server: Processing start command...');
+    // Clean up existing session if there is one
+    if (currentSession) {
+      console.log('Server: Cleaning up existing session:', currentSession.sessionId);
+      await cleanupSession(currentSession);
+      currentSession = null;
+    }
+
+    const sessionId = message.payload.sessionId || `session-${Date.now()}`;
+    console.log('Server: Starting new session:', sessionId);
+
+    // Create session directory
+    const sessionDir = join(AUDIO_DIR, sessionId);
+    await fs.mkdir(sessionDir, { recursive: true });
+
+    // Initialize new session and add to active sessions
+    currentSession = new AudioSession(sessionId, transcriptionService);
+    currentSession.setSocket(socket);
+    activeSessions.set(sessionId, currentSession);
+    console.log('Server: Session added to active sessions. Current count:', activeSessions.size);
+    console.log('Server: Active sessions:', Array.from(activeSessions.keys()));
+
+    // Send initial status
+    socket.send(
+      JSON.stringify({
+        type: 'status',
+        payload: { status: 'ready', sessionId },
+        sessionId,
+        timestamp: Date.now(),
+      })
+    );
+  } else if (message.payload.action === 'startRecording') {
+    console.log('Server: Processing startRecording command...');
+    if (!currentSession) {
+      console.error('Server: No active session found');
+      // Try to recover by finding session in activeSessions map
+      const sessionId = message.payload.sessionId;
+      currentSession = activeSessions.get(sessionId);
+      if (!currentSession) {
+        console.error('Server: Could not recover session');
+        return;
+      }
+      console.log('Server: Recovered session:', sessionId);
+    }
+
+    try {
+      await currentSession.startRecording();
+      currentSession.status = 'recording';
+      console.log(`Server: Recording started for session ${currentSession.sessionId}`);
+
+      socket.send(
+        JSON.stringify({
+          type: 'status',
+          payload: { status: 'recording', sessionId: currentSession.sessionId },
+          sessionId: currentSession.sessionId,
+          timestamp: Date.now(),
+        })
+      );
+    } catch (error) {
+      console.error('Server: Error starting recording:', error);
+    }
+  } else if (message.payload.action === 'stop') {
+    console.log('Server: Processing stop command with full message:', message);
+    if (!currentSession) {
+      console.error('Server: No active session found');
+      // Try to recover session
+      const sessionId = message.payload.sessionId;
+      currentSession = activeSessions.get(sessionId);
+      if (!currentSession) {
+        console.error('Server: Could not recover session');
+        return;
+      }
+      console.log('Server: Recovered session:', sessionId);
+    }
+
+    try {
+      await currentSession.stopRecording();
+      console.log('Server: Recording stopped, sending status update');
+
+      // Ensure we update the session state
+      currentSession.status = 'stopped';
+
+      socket.send(
+        JSON.stringify({
+          type: 'status',
+          payload: {
+            status: 'stopped',
+            sessionId: currentSession.sessionId,
+          },
+          sessionId: currentSession.sessionId,
+          timestamp: Date.now(),
+        })
+      );
+    } catch (error) {
+      console.error('Server: Error during stop:', error);
+    }
+  } else if (message.payload.action === 'end') {
+    console.log('Server: Processing end command...');
+    if (!currentSession) {
+      console.error('Server: No active session to end');
+      throw new Error('No active session to end');
+    }
+
+    await cleanupSession(currentSession);
+    currentSession = null;
+
+    socket.send(
+      JSON.stringify({
+        type: 'session_ended',
+        sessionId: message.payload.sessionId,
+        timestamp: Date.now(),
+      })
+    );
+  }
+  break;
         default:
           console.warn('Unknown message type:', message.type);
           break;
@@ -189,13 +208,10 @@ server.on('connection', (socket) => {
   
 
   // Update the close handler
-socket.on('close', async () => {
-  if (currentSession) {
-    await cleanupSession(currentSession);
-    currentSession = null;
-  }
-  console.log('Client disconnected');
-});
+  socket.on('close', async () => {
+    console.log('Client disconnected, but keeping session active');
+    // Remove cleanup code to keep session alive
+  });
 
   socket.on('error', (error) => {
     console.error('WebSocket error:', error);

@@ -106,6 +106,7 @@ export function useAudioRecorder(): AudioRecorderHook {
           }
           case 'status': {
             console.log('Frontend: Received status update:', message.payload.status);
+            console.log('Frontend: Current isRecording state before update:', isRecording);
             setSessionData((prev) => ({
               ...(prev || defaultSessionData),
               sessionId: message.payload.sessionId || prev?.sessionId || '',
@@ -116,6 +117,7 @@ export function useAudioRecorder(): AudioRecorderHook {
             if (message.payload.status === 'recording' && sessionActive) { // Only set to true if sessionActive
               console.log('Frontend: Setting recording state to true');
               setIsRecording(true);
+              console.log('isRecording updated to true:', isRecording);
             } else if (['completed', 'failed', 'stopped'].includes(message.payload.status || '')) {
               console.log('Setting recording state to false');
               setIsRecording(false);
@@ -123,11 +125,27 @@ export function useAudioRecorder(): AudioRecorderHook {
             break;
           }
           case 'transcription': {
+            console.log('Frontend: Received transcription message:', message);
+          
             if (message.payload.transcription) {
-              setTranscriptions((prev) => [...prev, message.payload.transcription!]);
+              const transcription = message.payload.transcription;
+          
+              // Ensure transcription is of type TranscriptionData
+              if (transcription && typeof transcription.text === 'string' && typeof transcription.timestamp === 'number') {
+                console.log('Frontend: Adding transcription:', transcription);
+          
+                setTranscriptions((prev) => {
+                  const updated = [...prev, transcription];
+                  console.log('Frontend: Updated transcriptions state:', updated);
+                  return updated;
+                });
+              } else {
+                console.error('Invalid transcription data received:', transcription);
+              }
             }
             break;
           }
+          
           case 'session_ended': {
             setIsRecording(false);
             setSessionActive(false);
@@ -157,29 +175,25 @@ export function useAudioRecorder(): AudioRecorderHook {
         throw new Error('WebSocket is not connected');
       }
   
-      const newSessionId =
+      const newSessionId = 
         providedSessionId || `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   
-      const message = createWebSocketMessage(
-        'command',
-        { action: 'start', sessionId: newSessionId },
-        newSessionId
-      );
+      const message = {
+        type: 'command',
+        payload: { action: 'start', sessionId: newSessionId },
+        sessionId: newSessionId,
+      };
   
       if (socketRef.current?.readyState === WebSocket.OPEN) {
-        // Send message to initialize session without starting recording
         socketRef.current.send(JSON.stringify(message));
-  
-        // Update UI to indicate the session is ready but not recording
-        setSessionActive(false); // Ensure recording isn't active yet
+        setSessionActive(true);  // Changed this to true
         setTranscriptions([]);
         setSessionData({
           ...defaultSessionData,
           sessionId: newSessionId,
           startTime: Date.now(),
-          status: 'ready', // Explicitly set session status as ready
+          status: 'ready',
         });
-  
         return newSessionId;
       } else {
         throw new Error('WebSocket is not in an open state');
@@ -189,59 +203,82 @@ export function useAudioRecorder(): AudioRecorderHook {
       setError(err instanceof Error ? err.message : 'Failed to start session');
       throw err;
     }
-  }, [isConnected]);
+  }, [isConnected]);  
   
 
   const startRecording = useCallback(async () => {
     try {
       setError(null);
-
+  
       if (!isConnected) {
         throw new Error('Not connected to server');
       }
-
+  
       let currentSessionId = sessionData?.sessionId;
-      
+  
+      // If no session is active, start a new session
       if (!sessionActive) {
         currentSessionId = await startSession();
       }
-
+  
       if (!currentSessionId) {
         throw new Error('Invalid session state');
       }
-
-      console.log('Starting recording...');
-      
-      sendWebSocketMessage(
-        createWebSocketMessage(
-          'command',
-          { action: 'start', sessionId: currentSessionId },
-          currentSessionId
-        )
-      );
-
+  
+      // Prepare the WebSocket message
+      const message: WebSocketMessage = {
+        type: 'command', // Valid type from WebSocketMessageType
+        payload: {
+          action: 'startRecording', // Valid action from WebSocketPayload
+          sessionId: currentSessionId,
+        },
+        sessionId: currentSessionId,
+        timestamp: Date.now(), // Add a timestamp for the message
+      };
+  
+      sendWebSocketMessage(message); // Send the message
+      console.log('Frontend: Sent startRecording message to server');
+  
+      setIsRecording(true); // Update recording state
+      console.log('isRecording updated to true:', isRecording);
     } catch (err) {
-      console.error('Error starting recording:', err);
+      console.warn('Error starting recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, [isConnected, sessionActive, sessionData, startSession, sendWebSocketMessage]);
-
+  }, [isConnected, isRecording, sessionActive, sessionData, startSession, sendWebSocketMessage]);
+  
   const stopRecording = useCallback(() => {
-    console.log('Frontend: Initiating stop recording...');
-    
-    if (sessionData?.sessionId) {
-      console.log('Frontend: Sending stop command for session:', sessionData.sessionId);
-      sendWebSocketMessage(
-        createWebSocketMessage(
-          'command',
-          { action: 'stop', sessionId: sessionData.sessionId },
-          sessionData.sessionId
-        )
-      );
-    } else {
-      console.error('Frontend: No session data available for stop recording');
+    try {
+      console.log('Frontend: Initiating stop recording...');
+  
+      if (!sessionData?.sessionId) {
+        throw new Error('No active session found for stop recording');
+      }
+  
+      // Prepare the WebSocket message
+      const message: WebSocketMessage = {
+        type: 'command', // Valid type from WebSocketMessageType
+        payload: {
+          action: 'stop', // Valid action from WebSocketPayload
+          sessionId: sessionData.sessionId,
+        },
+        sessionId: sessionData.sessionId,
+        timestamp: Date.now(), // Add a timestamp for the message
+      };
+  
+      sendWebSocketMessage(message); // Send the message
+      console.log('Frontend: Sent stop command for session:', sessionData.sessionId);
+  
+      setIsRecording(false); // Update recording state
+    } catch (err) {
+      console.warn('Error stopping recording:', err);
+      setError(err instanceof Error ? err.message : 'Failed to stop recording');
     }
   }, [sessionData, sendWebSocketMessage]);
+  
+  
+  
+  
 
   const endSession = useCallback(() => {
     if (isRecording) {

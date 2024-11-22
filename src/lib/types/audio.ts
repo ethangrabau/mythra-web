@@ -59,7 +59,7 @@ export interface WebSocketPayload {
   message?: string; // Optional error or status message
   status?: SessionStatus; // Current session status
   sessionId?: string; // Session ID for context
-  action?: 'start' | 'stop' | 'end'; // Action being requested
+  action?: 'start' | 'stop' | 'end' | 'startRecording'; // Action being requested
   chunkId?: number; // ID of the audio chunk
   duration?: number; // Duration of the audio chunk
   size?: number; // Size of the audio chunk in bytes
