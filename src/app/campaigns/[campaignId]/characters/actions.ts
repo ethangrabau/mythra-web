@@ -42,7 +42,6 @@ export async function getCampaignCharacters(campaignId: string) {
     const typedCampaign = campaign as unknown as PopulatedCampaignResult;
 
     const characters = typedCampaign.players.filter(player => player.isActive).map(player => player.characterId);
-    console.log('populated characters: ', characters);
 
     return JSON.parse(JSON.stringify(characters));
   } catch (error) {
