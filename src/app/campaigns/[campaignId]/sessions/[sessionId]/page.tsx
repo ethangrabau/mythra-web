@@ -11,14 +11,14 @@ import Link from 'next/link';
 import { TranscriptionTimeline } from './components/TranscriptionTimeline';
 import type { ITranscription } from '@/lib/models/Transcription';
 
-interface SessionPageProps {
+type SessionPageProps = {
   params:
     | Promise<{ campaignId: string; sessionId: string }>
     | {
         campaignId: string;
         sessionId: string;
       };
-}
+};
 
 export default async function SessionPage({ params: paramsPromise }: SessionPageProps) {
   const params = await paramsPromise;
