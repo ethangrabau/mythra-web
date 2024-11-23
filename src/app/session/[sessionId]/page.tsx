@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 import ImageDisplay from '@/components/ImageDisplay';
 import { cn } from '@/lib/utils/ui';
+import { useCallback } from 'react';
 
 const SessionPage = () => {
   const params = useParams();
@@ -26,10 +27,59 @@ const SessionPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Add the new useEffect here
+  const handleRestart = useCallback(async () => {
+    try {
+      setError(null);
+  
+      if (isRecording) {
+        stopRecording();
+      }
+  
+      const response = await fetch('/api/delete-memory-log', { method: 'POST' });
+      if (!response.ok) {
+        throw new Error('Failed to delete memory log');
+      }
+  
+      console.log('Memory log deleted successfully.');
+  
+      const newSessionId = await startSession();
+      if (newSessionId) {
+        router.push(`/session/${newSessionId}`);
+      }
+    } catch (err) {
+      console.error('Failed to restart session:', err);
+      setError(err instanceof Error ? err.message : 'Failed to restart session');
+    }
+  }, [isRecording, stopRecording, startSession, router]); // Add dependencies here
+  
+
+  // Keyboard shortcut handler
   useEffect(() => {
-    console.log('Rendering button with isRecording:', isRecording);
-  }, [isRecording]);
+    const handleKeydown = (event: KeyboardEvent) => {
+      switch (event.key.toLowerCase()) {
+        case '1': // Start recording (P for Play)
+          if (!isRecording && isConnected) {
+            startRecording();
+          }
+          break;
+        case '2': // Stop recording (S for Stop)
+          if (isRecording) {
+            stopRecording();
+          }
+          break;
+        case '3': // Restart session (R for Restart)
+          handleRestart();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  }, [isRecording, isConnected, startRecording, stopRecording, handleRestart]);
 
   useEffect(() => {
     if (sessionIdFromUrl && !sessionData) {
@@ -46,31 +96,6 @@ const SessionPage = () => {
       });
     }
   }, [sessionIdFromUrl, sessionData, startSession]);
-
-  const handleRestart = async () => {
-    try {
-      setError(null);
-
-      if (isRecording) {
-        stopRecording();
-      }
-
-      const response = await fetch('/api/delete-memory-log', { method: 'POST' });
-      if (!response.ok) {
-        throw new Error('Failed to delete memory log');
-      }
-
-      console.log('Memory log deleted successfully.');
-
-      const newSessionId = await startSession();
-      if (newSessionId) {
-        router.push(`/session/${newSessionId}`);
-      }
-    } catch (err) {
-      console.error('Failed to restart session:', err);
-      setError(err instanceof Error ? err.message : 'Failed to restart session');
-    }
-  };
 
   return (
     <main className="h-screen w-full bg-gray-50 overflow-hidden">
@@ -117,7 +142,6 @@ const SessionPage = () => {
                 <RotateCcw className="w-6 h-6 inline-block mr-2" />
                 Restart Session
               </button>
-            
             </div>
 
             <TranscriptionViewer

@@ -216,18 +216,19 @@ export class AudioSession {
         transcriptionData.transcriptions.push(transcription);
         transcriptionData.lastUpdated = Date.now();
         
-        // Save file and notify client
+        // Save file only - remove WebSocket send since it's handled by the event
         await fs.writeFile(transcriptionPath, JSON.stringify(transcriptionData, null, 2));
         
-        if (this.socket) {
-          console.log(`[AudioSession] Sending transcription to client:`, transcription);
-          this.socket.send(JSON.stringify({
-            type: 'transcription',
-            payload: { transcription },
-            sessionId: this.sessionId,
-            timestamp: Date.now()
-          }));
-        }
+        // Remove this entire block since it's duplicate
+        // if (this.socket) {
+        //   console.log(`[AudioSession] Sending transcription to client:`, transcription);
+        //   this.socket.send(JSON.stringify({
+        //     type: 'transcription',
+        //     payload: { transcription },
+        //     sessionId: this.sessionId,
+        //     timestamp: Date.now()
+        //   }));
+        // }
       }
   
       // Mark chunk as processed

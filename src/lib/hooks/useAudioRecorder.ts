@@ -11,7 +11,6 @@ import {
   defaultSessionData,
   AudioRecorderHook,
   WebSocketMessageType,
-  QueuedMessage  // Add this import
 } from '../types/audio';
 
 
@@ -38,7 +37,6 @@ export function useAudioRecorder(): AudioRecorderHook {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const lastMessageRef = useRef<string | null>(null);
-  const messageQueue = useRef<QueuedMessage[]>([]);
 
 
   useEffect(() => {
