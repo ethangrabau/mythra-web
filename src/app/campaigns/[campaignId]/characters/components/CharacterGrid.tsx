@@ -6,6 +6,7 @@ import { Shield, Swords, Brain, Heart, Zap, Sparkles } from 'lucide-react';
 import type { ICharacter } from '@/lib/models/Character';
 import { Types } from 'mongoose';
 import Link from 'next/link';
+import StatBox from './StatBox';
 
 type CharacterWithIdAndCampaignId = {
   _id: Types.ObjectId;
@@ -16,7 +17,6 @@ type CharacterGridProps = { characters: CharacterWithIdAndCampaignId[]; campaign
 
 export const CharacterGrid = ({ characters, campaignId }: CharacterGridProps) => {
   const getModifier = (stat: number) => Math.floor((stat - 10) / 2);
-  const formatModifier = (mod: number) => (mod >= 0 ? `+${mod}` : mod.toString());
 
   return (
     <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
@@ -112,26 +112,6 @@ export const CharacterGrid = ({ characters, campaignId }: CharacterGridProps) =>
       ))}
     </div>
   );
-
-  type StatBoxProps = {
-    label: string;
-    value: number;
-    modifier: number;
-    icon: React.ComponentType<{ className?: string }>;
-  };
-
-  function StatBox({ label, value, modifier, icon: Icon }: StatBoxProps) {
-    return (
-      <div className='flex flex-col items-center p-2 b-gray-50 rounded-lg'>
-        <div className='flex items-center gap-1 text-gray-600'>
-          <Icon className='h-4 w-4' />
-          <span className='text-xs font-medium'>{label}</span>
-        </div>
-        <div className='text-lg font-bold text-gray-900'>{value}</div>
-        <div className='text-sm text-gray=600'>{formatModifier(modifier)}</div>
-      </div>
-    );
-  }
 };
 
 export type { CharacterWithIdAndCampaignId };

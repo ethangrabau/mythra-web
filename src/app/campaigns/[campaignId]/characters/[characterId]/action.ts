@@ -1,3 +1,4 @@
+// /campaigns/:campaignId/characters/:characterId/actions.ts
 'use server';
 
 import { isValidObjectId } from 'mongoose';
@@ -15,7 +16,10 @@ export async function getCharacter(characterId: string) {
       throw new Error('Invalid character ID');
     }
 
-    const character = await Character.findById(characterId).lean();
+    const character = await Character.findById(characterId)
+      .populate('playerId', 'username email')
+      .populate('currentCampaignId', 'name')
+      .lean();
 
     if (!character) {
       throw new Error('Character not found');
