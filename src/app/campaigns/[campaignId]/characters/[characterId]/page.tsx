@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { CharacterWithId } from './action';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
   Shield,
@@ -37,10 +38,10 @@ export default async function CharacterPage({ params: paramsPromise }: Character
 
   return (
     <div className='p-6 space-y-6 max-w-7xl mx-auto'>
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-        {/* Left Column - Image and Ability Scores */}
-        <div className='space-y-6'>
-          {/* Character Image */}
+      {/* Top Section - Character Overview */}
+      <div className='flex flex-col md:flex-row gap-6'>
+        {/* Left - Image */}
+        <div className='w-full md:w-1/4'>
           <div className='relative aspect-[3/4] w-full rounded-lg overflow-hidden shadow-lg'>
             <Image
               src={character.imageUrl || '/placeholder-character.jpg'}
@@ -49,106 +50,123 @@ export default async function CharacterPage({ params: paramsPromise }: Character
               className='object-cover'
             />
           </div>
-
-          {/* Ability Scores Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <Shield className='h-5 w-5' />
-                Ability Scores
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CharacterStats stats={character.stats} />
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Middle and Right Columns - Character Info and Details */}
-        <div className='lg:col-span-2 space-y-6'>
-          {/* Character Header Info */}
-          <div>
-            <h1 className='text-3xl font-bold text-gray-900 mb-2'>{character.name}</h1>
-            <div className='flex flex-wrap gap-2 mb-4'>
-              <Badge variant='outline'>
-                {character.race} {character.subrace ? `(${character.subrace})` : ''}
-              </Badge>
-              {character.class.map((cls: any, index: number) => (
-                <Badge key={index} variant='secondary'>
-                  {cls.name} {cls.subclass ? `(${cls.subclass})` : ''} {cls.level}
+        {/* Right - Basic Info */}
+        <div className='w-full md:w-3/4'>
+          <div className='space-y-4'>
+            <div>
+              <h1 className='text-3xl font-bold text-gray-900 mb-2'>{character.name}</h1>
+              <div className='flex flex-wrap gap-2 mb-4'>
+                <Badge variant='outline'>
+                  {character.race} {character.subrace ? `(${character.subrace})` : ''}
                 </Badge>
-              ))}
-              <Badge>{character.alignment}</Badge>
-            </div>
-            <p className='text-gray-600'>{character.background}</p>
-          </div>
-
-          {/* Experience Card */}
-          <Card>
-            <CardContent className='p-6'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <p className='text-sm text-gray-500'>Experience</p>
-                  <p className='text-2xl font-bold'>{character.experience.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className='text-sm text-gray-500'>Total Level</p>
-                  <p className='text-2xl font-bold text-center'>
-                    {character.class.reduce((sum: number, cls: any) => sum + cls.level, 0)}
-                  </p>
-                </div>
+                {character.class.map((cls: any, index: number) => (
+                  <Badge key={index} variant='secondary'>
+                    {cls.name} {cls.subclass ? `(${cls.subclass})` : ''} {cls.level}
+                  </Badge>
+                ))}
+                <Badge>{character.alignment}</Badge>
               </div>
-            </CardContent>
-          </Card>
+              <p className='text-gray-600'>{character.background}</p>
+            </div>
 
-          {/* Personality Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <User className='h-5 w-5' />
-                Personality
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CharacterTraits
-                personalityTraits={character.personalityTraits}
-                ideals={character.ideals}
-                bonds={character.bonds}
-                flaws={character.flaws}
-              />
-            </CardContent>
-          </Card>
+            <Card>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
+                  <div>
+                    <p className='text-sm text-gray-500'>Experience</p>
+                    <p className='text-2xl font-bold'>{character.experience.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-500'>Total Level</p>
+                    <p className='text-2xl font-bold text-center'>
+                      {character.class.reduce((sum: number, cls: any) => sum + cls.level, 0)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
-      {/* Bottom Row - Inventory and Notes */}
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        {/* Inventory */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <Backpack className='h-5 w-5' />
-              Inventory
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CharacterInventory inventory={character.inventory} />
-          </CardContent>
-        </Card>
+      {/* Tabs Section */}
+      <Tabs defaultValue='stats' className='w-full'>
+        <TabsList className='grid w-full grid-cols-5'>
+          <TabsTrigger value='stats' className='flex items-center gap-2'>
+            <Shield className='h-4 w-4' />
+            Stats
+          </TabsTrigger>
+          <TabsTrigger value='personality' className='flex items-center gap-2'>
+            <User className='h-4 w-4' />
+            Personality
+          </TabsTrigger>
+          <TabsTrigger value='inventory' className='flex items-center gap-2'>
+            <Backpack className='h-4 w-4' />
+            Inventory
+          </TabsTrigger>
+          <TabsTrigger value='background' className='flex items-center gap-2'>
+            {/* <History className='h-4 w-4' /> */}
+            Background
+          </TabsTrigger>
+          <TabsTrigger value='notes' className='flex items-center gap-2'>
+            <FileText className='h-4 w-4' />
+            Notes
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Notes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <FileText className='h-5 w-5' />
-              Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className='text-gray-600 whitespace-pre-wrap'>{character.notes || 'No notes recorded.'}</p>
-          </CardContent>
-        </Card>
-      </div>
+        <div className='mt-6'>
+          <TabsContent value='stats'>
+            <Card>
+              <CardContent className='p-6'>
+                <CharacterStats stats={character.stats} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value='personality'>
+            <Card>
+              <CardContent className='p-6'>
+                <CharacterTraits
+                  personalityTraits={character.personalityTraits}
+                  ideals={character.ideals}
+                  bonds={character.bonds}
+                  flaws={character.flaws}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value='inventory'>
+            <Card>
+              <CardContent className='p-6'>
+                <CharacterInventory inventory={character.inventory} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value='background'>
+            <Card>
+              <CardContent className='p-6 space-y-4'>
+                <div>
+                  <h3 className='font-medium text-gray-900 mb-2'>Background</h3>
+                  <p className='text-gray-600'>{character.background}</p>
+                </div>
+                {/* Add more background-related information here */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value='notes'>
+            <Card>
+              <CardContent className='p-6'>
+                <p className='text-gray-600 whitespace-pre-wrap'>{character.notes || 'No notes recorded.'}</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }
