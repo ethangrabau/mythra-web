@@ -1,13 +1,12 @@
 'use client';
 
-import { PlayCircle, StopCircle, RotateCcw } from 'lucide-react';
+import { PlayCircle, StopCircle, RotateCcw, Printer } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 import ImageDisplay from '@/components/ImageDisplay';
 import { cn } from '@/lib/utils/ui';
-import { useCallback } from 'react';
 
 const SessionPage = () => {
   const params = useParams();
@@ -26,22 +25,29 @@ const SessionPage = () => {
   } = useAudioRecorder();
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+
+   // Add the debug useEffect here
+   useEffect(() => {
+    console.log('Current image URL updated:', currentImageUrl);
+  }, [currentImageUrl]);
+
 
   const handleRestart = useCallback(async () => {
     try {
       setError(null);
-  
+
       if (isRecording) {
         stopRecording();
       }
-  
+
       const response = await fetch('/api/delete-memory-log', { method: 'POST' });
       if (!response.ok) {
         throw new Error('Failed to delete memory log');
       }
-  
+
       console.log('Memory log deleted successfully.');
-  
+
       const newSessionId = await startSession();
       if (newSessionId) {
         router.push(`/session/${newSessionId}`);
@@ -50,24 +56,78 @@ const SessionPage = () => {
       console.error('Failed to restart session:', err);
       setError(err instanceof Error ? err.message : 'Failed to restart session');
     }
-  }, [isRecording, stopRecording, startSession, router]); // Add dependencies here
-  
+  }, [isRecording, stopRecording, startSession, router]);
 
-  // Keyboard shortcut handler
+  const handlePrint = useCallback(() => {
+    if (!currentImageUrl) {
+      console.error('No image available to print');
+      return;
+    }
+  
+    const imageUrl = `http://localhost:3001${currentImageUrl}`;
+    const printWindow = window.open('', '_blank');
+    
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Print Image</title>
+            <style>
+              @page {
+                size: 2in 3in;
+                margin: 0;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                background: black;
+              }
+              img {
+                width: 2in;
+                height: 3in;
+                object-fit: cover;
+                display: block;
+              }
+              @media print {
+                body { background: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${imageUrl}" onload="setTimeout(window.print, 500)">
+            <script>
+              window.addEventListener('afterprint', function() {
+                window.close();
+              });
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } else {
+      console.error('Failed to open the print window');
+    }
+  }, [currentImageUrl]);
+
+  const toggleRecording = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+    } else if (isConnected) {
+      startRecording();
+    }
+  }, [isRecording, isConnected, startRecording, stopRecording]);
+
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       switch (event.key.toLowerCase()) {
-        case '1': // Start recording (P for Play)
-          if (!isRecording && isConnected) {
-            startRecording();
-          }
+        case '1': // Toggle recording
+          toggleRecording();
           break;
-        case '2': // Stop recording (S for Stop)
-          if (isRecording) {
-            stopRecording();
-          }
+        case '3': // Print the current image
+          handlePrint();
           break;
-        case '3': // Restart session (R for Restart)
+        case '2': // Restart session
           handleRestart();
           break;
         default:
@@ -79,7 +139,7 @@ const SessionPage = () => {
     return () => {
       window.removeEventListener('keydown', handleKeydown);
     };
-  }, [isRecording, isConnected, startRecording, stopRecording, handleRestart]);
+  }, [toggleRecording, handlePrint, handleRestart]);
 
   useEffect(() => {
     if (sessionIdFromUrl && !sessionData) {
@@ -117,30 +177,42 @@ const SessionPage = () => {
             <p className="text-gray-600 mt-2">Control and manage your D&D session recordings.</p>
 
             <div className="flex items-center space-x-4">
-              {!isRecording ? (
-                <button
-                  onClick={startRecording}
-                  disabled={!isConnected || isRecording}
-                  className="p-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all"
-                >
-                  <PlayCircle className="w-6 h-6 inline-block mr-2" />
-                  Start Recording
-                </button>
-              ) : (
-                <button
-                  onClick={stopRecording}
-                  className="p-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all"
-                >
-                  <StopCircle className="w-6 h-6 inline-block mr-2" />
-                  Stop Recording
-                </button>
-              )}
+              <button
+                onClick={toggleRecording}
+                disabled={!isConnected}
+                className={cn(
+                  "p-4 rounded-lg text-white transition-all",
+                  isRecording 
+                    ? "bg-red-600 hover:bg-red-700" 
+                    : "bg-green-600 hover:bg-green-700"
+                )}
+              >
+                {isRecording ? (
+                  <>
+                    <StopCircle className="w-6 h-6 inline-block mr-2" />
+                    Stop Recording
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle className="w-6 h-6 inline-block mr-2" />
+                    Start Recording
+                  </>
+                )}
+              </button>
               <button
                 onClick={handleRestart}
                 className="p-4 rounded-lg bg-yellow-600 text-white hover:bg-yellow-700 transition-all"
               >
                 <RotateCcw className="w-6 h-6 inline-block mr-2" />
                 Restart Session
+              </button>
+              <button
+                onClick={handlePrint}
+                disabled={!currentImageUrl}
+                className="p-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Printer className="w-6 h-6 inline-block mr-2" />
+                Print Image
               </button>
             </div>
 
@@ -164,6 +236,7 @@ const SessionPage = () => {
             isFullscreen={isFullscreen}
             onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
             isRecording={isRecording}
+            onImageChange={setCurrentImageUrl}
           />
         </div>
       </div>

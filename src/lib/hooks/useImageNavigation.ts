@@ -26,13 +26,23 @@ export interface UseImageNavigation {
   loading: boolean;
 }
 
-export function useImageNavigation(sessionId: string): UseImageNavigation {
+export function useImageNavigation(
+  sessionId: string,
+  onImageChange?: (imageUrl: string | null) => void
+): UseImageNavigation {
   const [state, setState] = useState<ImageNavigationState>({
     currentImageIndex: 0,
     totalImages: 0,
     images: [],
   });
   const [loading, setLoading] = useState(false);
+
+  // Add this effect to call onImageChange whenever the current image changes
+  useEffect(() => {
+    if (onImageChange) {
+      onImageChange(state.images[state.currentImageIndex] || null);
+    }
+  }, [state.images, state.currentImageIndex, onImageChange]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -44,29 +54,15 @@ export function useImageNavigation(sessionId: string): UseImageNavigation {
       try {
         setLoading(true);
         const normalizedId = normalizeSessionId(sessionId);
-        console.log('Fetching images for session:', {
-          original: sessionId,
-          normalized: normalizedId
-        });
         
         // First try to get the latest image
         const latestResponse = await fetch(`http://localhost:3001/api/images/latest/${sessionId}`);
-        console.log('Latest image response:', {
-          status: latestResponse.status,
-          ok: latestResponse.ok
-        });
         
         if (latestResponse.ok) {
           const latestData = await latestResponse.json() as ImageApiResponse;
-          console.log('Latest image data:', latestData);
           
           if (latestData.imagePath) {
-            console.log('Updating state with latest image:', {
-              imagePath: latestData.imagePath
-            });
-            
             setState(prev => {
-              // If we already have images, check if we need to add the new one
               if (prev.images.length > 0) {
                 if (!prev.images.includes(latestData.imagePath!)) {
                   const newImages = [...prev.images, latestData.imagePath!];
@@ -78,7 +74,6 @@ export function useImageNavigation(sessionId: string): UseImageNavigation {
                 }
                 return prev;
               }
-              // First image
               return {
                 images: [latestData.imagePath!],
                 totalImages: 1,
@@ -87,7 +82,6 @@ export function useImageNavigation(sessionId: string): UseImageNavigation {
             });
           }
         } else {
-          console.log('Latest image fetch failed, attempting to fetch all images...');
           const allResponse = await fetch('http://localhost:3001/api/images');
           
           if (allResponse.ok) {
@@ -126,17 +120,27 @@ export function useImageNavigation(sessionId: string): UseImageNavigation {
   }, [sessionId]);
 
   const goToNextImage = () => {
-    setState(prev => ({
-      ...prev,
-      currentImageIndex: Math.min(prev.currentImageIndex + 1, prev.images.length - 1)
-    }));
+    console.log('Navigating to next image from:', state.currentImageIndex);
+    setState(prev => {
+      const newIndex = Math.min(prev.currentImageIndex + 1, prev.images.length - 1);
+      console.log('New image index:', newIndex, 'URL:', prev.images[newIndex]);
+      return {
+        ...prev,
+        currentImageIndex: newIndex
+      };
+    });
   };
-
+  
   const goToPreviousImage = () => {
-    setState(prev => ({
-      ...prev,
-      currentImageIndex: Math.max(prev.currentImageIndex - 1, 0)
-    }));
+    console.log('Navigating to previous image from:', state.currentImageIndex);
+    setState(prev => {
+      const newIndex = Math.max(prev.currentImageIndex - 1, 0);
+      console.log('New image index:', newIndex, 'URL:', prev.images[newIndex]);
+      return {
+        ...prev,
+        currentImageIndex: newIndex
+      };
+    });
   };
 
   const hasNextImage = state.images.length > 1 && state.currentImageIndex < state.images.length - 1;

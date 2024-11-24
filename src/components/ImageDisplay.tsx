@@ -10,13 +10,15 @@ interface ImageDisplayProps {
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   isRecording?: boolean;
+  onImageChange?: (imageUrl: string | null) => void; 
 }
 
 export default function ImageDisplay({ 
   sessionId, 
   isFullscreen = false,
   onToggleFullscreen,
-  isRecording = false
+  isRecording = false,
+  onImageChange
 }: ImageDisplayProps) {
   const {
     currentImage,
@@ -27,7 +29,7 @@ export default function ImageDisplay({
     loading,
     totalImages,
     currentImageIndex
-  } = useImageNavigation(sessionId);
+  } = useImageNavigation(sessionId, onImageChange);  // Pass onImageChange here
 
   // Debug logging
  // console.log('Image Display State:', {
