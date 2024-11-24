@@ -45,7 +45,7 @@ export default async function CampaignLayout({ children, params: paramsPromise }
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-1'>
       <Suspense fallback={<LoadingSpinner />}>
         <CampaignHeader campaign={campaign} />
       </Suspense>
