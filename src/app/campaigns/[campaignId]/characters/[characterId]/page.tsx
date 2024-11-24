@@ -31,17 +31,16 @@ type CharacterPageProps = {
 
 export default async function CharacterPage({ params: paramsPromise }: CharacterPageProps) {
   const params = await paramsPromise;
-  const character = (await getCharacter(params.characterId)) as CharacterWithId;
+  const character = await getCharacter(params.characterId);
 
   if (!character) return notFound();
-  console.log(character);
 
   return (
-    <div className='p-6 space-7-6 max-w-7xl mx-auto'>
-      {/* Character Header */}
-      <div className='flex flex-col md:flex-row gap-6'>
-        {/* Left Column - Image */}
-        <div className='w-full md:w-1/3'>
+    <div className='p-6 space-y-6 max-w-7xl mx-auto'>
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+        {/* Left Column - Image and Ability Scores */}
+        <div className='space-y-6'>
+          {/* Character Image */}
           <div className='relative aspect-[3/4] w-full rounded-lg overflow-hidden shadow-lg'>
             <Image
               src={character.imageUrl || '/placeholder-character.jpg'}
@@ -50,17 +49,31 @@ export default async function CharacterPage({ params: paramsPromise }: Character
               className='object-cover'
             />
           </div>
+
+          {/* Ability Scores Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <Shield className='h-5 w-5' />
+                Ability Scores
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CharacterStats stats={character.stats} />
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right Column */}
-        <div className='w-full md:w-2/3 space-y-6'>
+        {/* Middle and Right Columns - Character Info and Details */}
+        <div className='lg:col-span-2 space-y-6'>
+          {/* Character Header Info */}
           <div>
             <h1 className='text-3xl font-bold text-gray-900 mb-2'>{character.name}</h1>
             <div className='flex flex-wrap gap-2 mb-4'>
               <Badge variant='outline'>
                 {character.race} {character.subrace ? `(${character.subrace})` : ''}
               </Badge>
-              {character.class.map((cls: any, index: number) => (
+              {character.class.map((cls, index) => (
                 <Badge key={index} variant='secondary'>
                   {cls.name} {cls.subclass ? `(${cls.subclass})` : ''} {cls.level}
                 </Badge>
@@ -70,7 +83,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
             <p className='text-gray-600'>{character.background}</p>
           </div>
 
-          {/* Experience and Level */}
+          {/* Experience Card */}
           <Card>
             <CardContent className='p-6'>
               <div className='flex items-center justify-between'>
@@ -87,42 +100,8 @@ export default async function CharacterPage({ params: paramsPromise }: Character
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
 
-      {/* Main Content Grid */}
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-        {/* Left Column */}
-        <div className='space-y-6'>
-          {/* Ability Scores */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <Shield className='h-5 w-5' />
-                Ability Scores
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CharacterStats stats={character.stats} />
-            </CardContent>
-          </Card>
-
-          {/* Inventory */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <Backpack className='h-5 w-5' />
-                Inventory
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CharacterInventory inventory={character.inventory} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Middle Column - Personality */}
-        <div className='space-y-6'>
+          {/* Personality Card */}
           <Card>
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
@@ -140,21 +119,35 @@ export default async function CharacterPage({ params: paramsPromise }: Character
             </CardContent>
           </Card>
         </div>
+      </div>
 
-        {/* Right Column - Notes */}
-        <div className='space-y-6'>
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <FileText className='h-5 w-5' />
-                Notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className='text-gray-600 whitespace-pre-wrap'>{character.notes || 'No notes recorded.'}</p>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Bottom Row - Inventory and Notes */}
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+        {/* Inventory */}
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <Backpack className='h-5 w-5' />
+              Inventory
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CharacterInventory inventory={character.inventory} />
+          </CardContent>
+        </Card>
+
+        {/* Notes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <FileText className='h-5 w-5' />
+              Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className='text-gray-600 whitespace-pre-wrap'>{character.notes || 'No notes recorded.'}</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
