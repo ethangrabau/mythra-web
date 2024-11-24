@@ -73,7 +73,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
               <Badge variant='outline'>
                 {character.race} {character.subrace ? `(${character.subrace})` : ''}
               </Badge>
-              {character.class.map((cls, index) => (
+              {character.class.map((cls: any, index: number) => (
                 <Badge key={index} variant='secondary'>
                   {cls.name} {cls.subclass ? `(${cls.subclass})` : ''} {cls.level}
                 </Badge>
@@ -94,7 +94,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
                 <div>
                   <p className='text-sm text-gray-500'>Total Level</p>
                   <p className='text-2xl font-bold text-center'>
-                    {character.class.reduce((sum, cls) => sum + cls.level, 0)}
+                    {character.class.reduce((sum: number, cls: any) => sum + cls.level, 0)}
                   </p>
                 </div>
               </div>
