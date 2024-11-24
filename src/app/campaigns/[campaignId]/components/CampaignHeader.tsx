@@ -35,31 +35,30 @@ export function CampaignHeader({ campaign }: CampaignHeaderProps) {
   };
 
   return (
-    <div className='bg-white rounded-lg shadow p-6'>
+    <div className='bg-white rounded-lg shadow p-2'>
       <div className='flex justify-between items-start'>
         <div>
           <div className='flex items-center gap-4'>
-            <h1 className='text-3xl font-bold'>{campaign.name}</h1>
+            <h2 className='text-2xl font-bold'>{campaign.name}</h2>
             <Badge variant={getBadgeVariant(campaign.status)}>{campaign.status}</Badge>
-          </div>
-
-          <div className='mt-4 flex items-center gap-6 text-muted-foreground'>
-            <div className='flex items-center gap-2'>
-              <Users className='h-4 w-4' />
-              <span>{campaign.players.length} players</span>
-            </div>
-
-            <div className='flex items-center gap-2'>
-              <D20Icon className='h-4 w-4' />
-              <span>Level {campaign.level.current}</span>
-            </div>
-
-            {campaign.nextSessionDate && (
+            <div className='mt-0 flex items-center gap-6 text-muted-foreground'>
               <div className='flex items-center gap-2'>
-                <CalendarDays className='h-4 w-4' />
-                <span>Next: {new Date(campaign.nextSessionDate).toLocaleDateString()}</span>
+                <Users className='h-4 w-4' />
+                <span>{campaign.players.length} players</span>
               </div>
-            )}
+
+              <div className='flex items-center gap-2'>
+                <D20Icon className='h-4 w-4' />
+                <span>Level {campaign.level.current}</span>
+              </div>
+
+              {campaign.nextSessionDate && (
+                <div className='flex items-center gap-2'>
+                  <CalendarDays className='h-4 w-4' />
+                  <span>Next: {new Date(campaign.nextSessionDate).toLocaleDateString()}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

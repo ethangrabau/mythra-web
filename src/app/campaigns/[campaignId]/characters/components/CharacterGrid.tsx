@@ -6,7 +6,7 @@ import { Shield, Swords, Brain, Heart, Zap, Sparkles } from 'lucide-react';
 import type { ICharacter } from '@/lib/models/Character';
 import { Types } from 'mongoose';
 import Link from 'next/link';
-import StatBox from './StatBox';
+import { StatBox } from './StatBox';
 
 type CharacterWithIdAndCampaignId = {
   _id: Types.ObjectId;
