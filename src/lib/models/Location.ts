@@ -16,9 +16,13 @@ export interface ILocation extends Document {
   quests: Types.ObjectId[]; // Quests associated with this location
   npcs: Types.ObjectId[]; // NPCs located here
   encounters: Types.ObjectId[]; // Encounters that can occur here
+  //factionsPresent: Types.ObjectId[]; // Factions that have a presence in the location
   history?: string; // Historical background
   tags?: string[]; // For categorization and searchability
+
   isDiscovered?: boolean; // Whether the players have discovered this location
+  isRestricted?: boolean; // Whether access to the location is restricted
+  entryRequirements?: string[]; // Conditions that must be met to enter the location
   notes?: {
     dm: string[]; // Private DM notes
     player: string[]; // Notes shared with players
@@ -51,6 +55,8 @@ const LocationSchema = new Schema<ILocation>(
     history: { type: String },
     tags: [String],
     isDiscovered: { type: Boolean, default: false },
+    isRestricted: { type: Boolean, default: false },
+    entryRequirements: [String],
     notes: {
       dm: [String],
       player: [String],
