@@ -12,6 +12,7 @@ export interface ICampaign extends Document {
     joinDate: Date;
     leaveDate?: Date;
   }[];
+  locations: Types.ObjectId[]; // Array of Locations linked to this campaign
   setting: string;
   startDate: Date;
   endDate?: Date;
@@ -54,6 +55,7 @@ const CampaignSchema = new Schema<ICampaign>(
         leaveDate: Date,
       },
     ],
+    locations: [{ type: Schema.Types.ObjectId, ref: 'Location' }],
     setting: String,
     startDate: { type: Date, default: Date.now },
     endDate: Date,

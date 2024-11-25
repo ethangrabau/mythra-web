@@ -16,6 +16,7 @@ import { createCampaigns } from './createCampaigns.js';
 import { createQuests } from './createQuests.js';
 import { createSessions } from './createSessions.js';
 import { createTranscriptions } from './createTranscription.js';
+import { createLocations } from './createLocations.js';
 
 // Load environment variables
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -51,22 +52,13 @@ async function seedDatabase() {
     const characters = await createCharacters(players);
     const campaigns = await createCampaigns(players, characters);
     const quests = await createQuests(campaigns.map(c => c._id));
+    const locations = await createLocations(campaigns, quests);
 
-    // Update campaigns with quests
-    const [firstCampaign, secondCampaign] = campaigns;
+    //Update campaigns with quests
+    await updateCampaignQuests(campaigns, quests);
 
-    // First campaign quest updates (2 completed, 1 in_progress)
-    firstCampaign.quests.mainQuests.push(quests[0]._id, quests[1]._id, quests[2]._id);
-    firstCampaign.quests.completedQuests.push(quests[0]._id, quests[1]._id);
-    firstCampaign.quests.activeQuests.push(quests[2]._id);
-    await firstCampaign.save();
-
-    // Second campaign quest updates (1 failed, 1 completed, 1 not_started)
-    secondCampaign.quests.mainQuests.push(quests[3]._id, quests[4]._id, quests[5]._id);
-    secondCampaign.quests.failedQuests.push(quests[3]._id);
-    secondCampaign.quests.completedQuests.push(quests[4]._id);
-    // quests[5] is not_started, so we don't add it to any status arrays
-    await secondCampaign.save();
+    // Update campaigns with locations
+    await updateCampaignLocations(campaigns, locations);
 
     // Create sessions
     const allSessions = await createSessions(campaigns, characters, quests);
@@ -122,6 +114,41 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       console.error('Fatal error:', err);
       process.exit(1);
     });
+}
+
+async function updateCampaignQuests(campaigns: any, quests: any) {
+  const [firstCampaign, secondCampaign] = campaigns;
+
+  // First campaign quest updates (2 completed, 1 in_progress)
+  firstCampaign.quests.mainQuests.push(quests[0]._id, quests[1]._id, quests[2]._id);
+  firstCampaign.quests.completedQuests.push(quests[0]._id, quests[1]._id);
+  firstCampaign.quests.activeQuests.push(quests[2]._id);
+  await firstCampaign.save();
+
+  // Second campaign quest updates (1 failed, 1 completed, 1 not_started)
+  secondCampaign.quests.mainQuests.push(quests[3]._id, quests[4]._id, quests[5]._id);
+  secondCampaign.quests.failedQuests.push(quests[3]._id);
+  secondCampaign.quests.completedQuests.push(quests[4]._id);
+  // quests[5] is not_started, so we don't add it to any status arrays
+  await secondCampaign.save();
+
+  console.log('🏹 Updated campaign quests');
+}
+
+async function updateCampaignLocations(campaigns: any, locations: any) {
+  for (const campaign of campaigns) {
+    //Find locations associated with this campaign
+    const campaignLocations = locations.filter((location: any) =>
+      location.campaigns.some((cId: any) => cId.equals(campaign._id))
+    );
+
+    //Assign location Ids to the campaign's locations property
+    campaign.locations = campaignLocations.map((location: any) => location._id);
+
+    await campaign.save();
+  }
+
+  console.log('📍 Updated campaign locations');
 }
 
 async function updateCampaignSessions(campaigns: any, strahdsSessions: any, giantsSessions: any) {
