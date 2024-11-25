@@ -62,10 +62,13 @@ async function seedDatabase() {
 
     // Create sessions
     const allSessions = await createSessions(campaigns, characters, quests);
-    const strahdsSessions = allSessions.filter((session: any) => campaigns[0]._id.equals(session.campaignId));
-    const giantsSessions = allSessions.filter((session: any) => campaigns[1]._id.equals(session.campaignId));
+
     // Update campaigns with sessions
-    await updateCampaignSessions(campaigns, strahdsSessions, giantsSessions);
+    await updateCampaignSessions(campaigns, allSessions);
+    // const strahdsSessions = allSessions.filter((session: any) => campaigns[0]._id.equals(session.campaignId));
+    // const giantsSessions = allSessions.filter((session: any) => campaigns[1]._id.equals(session.campaignId));
+    // // Update campaigns with sessions
+    // await updateCampaignSessions(campaigns, strahdsSessions, giantsSessions);
 
     const transcriptions = await createTranscriptions(allSessions, players);
     //Link transcriptions to sessions
@@ -151,13 +154,25 @@ async function updateCampaignLocations(campaigns: any, locations: any) {
   console.log('📍 Updated campaign locations');
 }
 
-async function updateCampaignSessions(campaigns: any, strahdsSessions: any, giantsSessions: any) {
-  campaigns[0].sessions.pastSessions = strahdsSessions.map((s: any) => s._id);
-  campaigns[1].sessions.pastSessions = giantsSessions.map((s: any) => s._id);
+async function updateCampaignSessions(campaigns: any, allSessions: any) {
+  for (const campaign of campaigns) {
+    //Find sessions associated with this campaign
+    const campaignSessions = allSessions.filter((session: any) => session.campaignId.equals(campaign._id));
 
-  await Promise.all(campaigns.map((c: any) => c.save()));
+    //Assign session Ids to the campaign's sessions.pastSessions property
+    campaign.sessions.pastSessions = campaignSessions.map((session: any) => session._id);
+
+    await campaign.save();
+  }
   console.log('📅 Updated campaign sessions');
 }
+// async function updateCampaignSessions(campaigns: any, strahdsSessions: any, giantsSessions: any) {
+//   campaigns[0].sessions.pastSessions = strahdsSessions.map((s: any) => s._id);
+//   campaigns[1].sessions.pastSessions = giantsSessions.map((s: any) => s._id);
+
+//   await Promise.all(campaigns.map((c: any) => c.save()));
+//   console.log('📅 Updated campaign sessions');
+// }
 
 async function linkTranscriptionsToSessions(sessions: any, transcriptions: any) {
   for (const session of sessions) {
