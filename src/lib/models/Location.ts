@@ -6,7 +6,7 @@ export interface ILocation extends Document {
   description: string;
   imageUrl?: string;
   transcriptionId?: Types.ObjectId; // Reference to Transcription if description is generated via speech-to-text
-  type?: 'city' | 'town' | 'village' | 'dungeon' | 'wilderness' | 'other';
+  type?: 'city' | 'town' | 'village' | 'dungeon' | 'wilderness' | 'fortress' | 'other';
   coordinates?: {
     latitude: number;
     longitude: number;
@@ -40,7 +40,7 @@ const LocationSchema = new Schema<ILocation>(
     transcriptionId: { type: Schema.Types.ObjectId, ref: 'Transcription' },
     type: {
       type: String,
-      enum: ['city', 'town', 'village', 'dungeon', 'wilderness', 'other'],
+      enum: ['city', 'town', 'village', 'dungeon', 'wilderness', 'fortress', 'other'],
       default: 'other',
     },
     coordinates: {
