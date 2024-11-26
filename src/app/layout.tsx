@@ -9,8 +9,8 @@ export default function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-50">
+    <html lang="en" className="light">
+      <body className="min-h-screen bg-gray-50">
         <LayoutClient>
           {children}
         </LayoutClient>

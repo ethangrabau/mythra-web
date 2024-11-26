@@ -11,12 +11,12 @@ interface LayoutClientProps {
 
 export default function LayoutClient({ children }: LayoutClientProps) {
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
-      <div className="flex-1 flex flex-col overflow-auto">
+      <main className="flex-1 flex flex-col overflow-auto bg-gray-50">
         {children}
-        <Footer />
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }

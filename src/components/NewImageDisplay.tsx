@@ -1,6 +1,5 @@
-// src/components/ImageDisplay.tsx
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Expand, Minimize } from 'lucide-react';
 import { useImageNavigation } from '@/lib/hooks/useImageNavigation';
@@ -31,6 +30,34 @@ export default function ImageDisplay({
     totalImages,
     currentImageIndex
   } = useImageNavigation(sessionId, onImageChange);
+
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      // Only handle keyboard navigation if we're not recording
+      if (isRecording) return;
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          if (hasPreviousImage) {
+            goToPreviousImage();
+          }
+          break;
+        case 'ArrowRight':
+          if (hasNextImage) {
+            goToNextImage();
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  }, [goToNextImage, goToPreviousImage, hasNextImage, hasPreviousImage, isRecording]);
 
   if (!currentImage) {
     return (

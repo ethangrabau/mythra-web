@@ -3,23 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: 255, 255, 255;
+  --foreground: 23, 23, 23;
+  --border: 229, 231, 235;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .button-spacing {
-  margin-bottom: 16px; /* Adjust the spacing as needed */
+  margin-bottom: 16px;
+}
+
+/* Custom component styles */
+.image-container {
+  @apply relative w-full min-h-[400px] bg-gray-50 rounded-lg overflow-hidden;
+}
+
+.nav-button {
+  @apply absolute top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/30 
+         text-white transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.fullscreen-button {
+  @apply absolute top-4 right-4 p-2 rounded-lg bg-black/20 hover:bg-black/30 
+         text-white transition-all z-10;
+}
+
+.image-counter {
+  @apply absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/20 text-white 
+         px-3 py-1 rounded-full text-sm;
 }
