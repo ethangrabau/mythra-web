@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+
+@font-face {
+  font-family: 'Obra Letra';
+  src: url('/fonts/ObraLetra.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-900 text-gray-100;
+    font-family: 'Obra Letra', system-ui, sans-serif;
+  }
+
+  /* Ensure all headings use the font */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Obra Letra', system-ui, sans-serif;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

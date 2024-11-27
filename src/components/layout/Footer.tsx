@@ -20,24 +20,23 @@ export default function Footer() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Only show session info on session page
   const showSessionInfo = pathname === '/session';
 
   return (
-    <footer className="border-t bg-white/50 backdrop-blur-sm">
+    <footer className="border-t border-gray-700 bg-gray-900/80 backdrop-blur-sm">
       <div className="px-8 py-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
           {/* Connection Status */}
           <div className="flex items-center gap-2 text-sm">
             {isConnected ? (
               <>
-                <Wifi className="w-4 h-4 text-green-500" />
-                <span className="text-green-600">Connected</span>
+                <Wifi className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400">Connected</span>
               </>
             ) : (
               <>
-                <WifiOff className="w-4 h-4 text-yellow-500 animate-pulse" />
-                <span className="text-yellow-600">Connecting...</span>
+                <WifiOff className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span className="text-amber-400">Connecting...</span>
               </>
             )}
           </div>
@@ -45,11 +44,11 @@ export default function Footer() {
           {/* Recording Status - Only show on session page */}
           {showSessionInfo && sessionData?.status && (
             <div className="flex items-center gap-2 text-sm">
-              <div className="w-px h-4 bg-gray-300" /> {/* Divider */}
-              <Mic className={`w-4 h-4 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-500'}`} />
-              <span className="capitalize text-gray-600">{sessionData.status}</span>
+              <div className="w-px h-4 bg-gray-700" /> {/* Divider */}
+              <Mic className={`w-4 h-4 ${isRecording ? 'text-red-400 animate-pulse' : 'text-gray-400'}`} />
+              <span className="capitalize text-gray-300">{sessionData.status}</span>
               {isRecording && sessionData.totalDuration > 0 && (
-                <span className="text-gray-600">{formatDuration(sessionData.totalDuration)}</span>
+                <span className="text-gray-300">{formatDuration(sessionData.totalDuration)}</span>
               )}
             </div>
           )}
@@ -57,8 +56,8 @@ export default function Footer() {
           {/* Show session ID if available */}
           {showSessionInfo && sessionData?.sessionId && (
             <div className="flex items-center gap-2 text-sm">
-              <div className="w-px h-4 bg-gray-300" /> {/* Divider */}
-              <span className="text-gray-600">Session: {sessionData.sessionId}</span>
+              <div className="w-px h-4 bg-gray-700" /> {/* Divider */}
+              <span className="text-gray-400">Session: {sessionData.sessionId}</span>
             </div>
           )}
         </div>

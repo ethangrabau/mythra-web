@@ -65,8 +65,8 @@ export default function ImageDisplay({
 
   if (!currentImage) {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-900 m-4 rounded-lg">
-        <div className={`text-white ${loading ? 'animate-pulse' : ''}`}>
+      <div className="flex h-full items-center justify-center bg-gray-900 rounded-lg">
+        <div className={`text-gray-300 ${loading ? 'animate-pulse' : ''}`}>
           {loading ? 'Generating scene...' : 'No images available'}
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function ImageDisplay({
             {hasPreviousImage && (
               <button
                 onClick={goToPreviousImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-all z-10"
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-900/50 hover:bg-gray-900/75 text-white transition-all z-10"
               >
                 <ChevronLeft className="h-6 w-6" />
               </button>
@@ -91,7 +91,7 @@ export default function ImageDisplay({
             {hasNextImage && (
               <button
                 onClick={goToNextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-all z-10"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-900/50 hover:bg-gray-900/75 text-white transition-all z-10"
               >
                 <ChevronRight className="h-6 w-6" />
               </button>
@@ -103,7 +103,7 @@ export default function ImageDisplay({
         {onToggleFullscreen && (
           <button
             onClick={onToggleFullscreen}
-            className="absolute top-4 right-4 p-2 rounded-lg bg-black/20 hover:bg-black/30 text-white transition-all z-10"
+            className="absolute top-4 right-4 p-2 rounded-lg bg-gray-900/50 hover:bg-gray-900/75 text-white transition-all z-10"
           >
             {isFullscreen ? (
               <Minimize className="h-5 w-5" />
@@ -115,7 +115,7 @@ export default function ImageDisplay({
 
         {/* Image */}
         <div className={`relative w-full h-full transition-all duration-300 ${
-          isFullscreen ? "scale-100" : "scale-95"
+          isFullscreen ? "scale-100" : "scale-95 hover:scale-100"
         }`}>
           <Image
             src={`http://localhost:3001${currentImage}`}
@@ -131,7 +131,7 @@ export default function ImageDisplay({
 
         {/* Image count indicator */}
         {totalImages > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/20 text-white px-3 py-1 rounded-full text-sm">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/50 text-white px-3 py-1 rounded-full text-sm">
             {currentImageIndex + 1} / {totalImages}
           </div>
         )}

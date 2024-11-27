@@ -65,41 +65,33 @@ export default function TranscriptionViewer({
   };
 
   if (!transcriptions?.length) {
-    console.log('TranscriptionViewer: No transcriptions to display:', {
-      isRecording,
-      sessionActive,
-      transcriptionsState: transcriptions
-    });
     return (
-      <Card>
-        <div className="rounded-lg bg-gray-50 p-8 text-center text-gray-500">
+      <Card className="bg-gray-900 border-gray-700">
+        <div className="rounded-lg bg-gray-900 p-8 text-center text-gray-400">
           {isRecording ? (
             <div className="flex items-center justify-center gap-2">
               <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
               <p>Waiting for transcription...</p>
             </div>
           ) : (
-            <p>No transcriptions available</p>
+            <div className="flex flex-col gap-2">
+              <p>No transcriptions available</p>
+              <div className="text-sm text-gray-500">Session: {sessionId}</div>
+            </div>
           )}
         </div>
       </Card>
     );
   }
 
-  console.log('TranscriptionViewer: Rendering transcriptions:', {
-    count: transcriptions.length,
-    latest: transcriptions[transcriptions.length - 1],
-    allTexts: transcriptions.map(t => t.text.substring(0, 50) + '...')
-  });
-
   return (
-    <Card>
-      <div className="border-b px-4 py-3 flex items-center justify-between">
-        <h3 className="font-medium text-gray-900">Session Transcription</h3>
+    <Card className="bg-gray-900 border-gray-700">
+      <div className="border-b border-gray-700 px-4 py-3 flex items-center justify-between bg-gray-900">
+        <h3 className="font-medium text-gray-200">Session Transcription</h3>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">Session: {sessionId}</span>
+          <span className="text-sm text-gray-400">Session: {sessionId}</span>
           {isRecording && (
-            <div className="flex items-center gap-2 text-sm text-red-600">
+            <div className="flex items-center gap-2 text-sm text-red-400">
               <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
               Recording
             </div>
@@ -109,30 +101,22 @@ export default function TranscriptionViewer({
 
       <div 
         ref={containerRef} 
-        className="max-h-[500px] overflow-y-auto p-4 space-y-4 bg-gray-50"
+        className="max-h-[500px] overflow-y-auto p-4 space-y-4 bg-gray-900"
       >
-        {transcriptions.map((transcription, index) => {
-          console.log('TranscriptionViewer: Rendering item:', {
-            index,
-            timestamp: transcription.timestamp,
-            textPreview: transcription.text?.substring(0, 50) + '...'
-          });
-
-          return (
-            <div 
-              key={`${transcription.timestamp}-${index}`}
-              className="flex gap-3 group hover:bg-gray-50 p-2 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Clock className="w-4 h-4" />
-                <span>{formatTimestamp(transcription.timestamp)}</span>
-              </div>
-              <p className="flex-1 text-gray-800 whitespace-pre-wrap">
-                {transcription.text}
-              </p>
+        {transcriptions.map((transcription, index) => (
+          <div 
+            key={`${transcription.timestamp}-${index}`}
+            className="flex gap-3 group hover:bg-gray-800 p-2 rounded-lg transition-colors"
+          >
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <Clock className="w-4 h-4" />
+              <span>{formatTimestamp(transcription.timestamp)}</span>
             </div>
-          );
-        })}
+            <p className="flex-1 text-gray-300 whitespace-pre-wrap">
+              {transcription.text}
+            </p>
+          </div>
+        ))}
       </div>
     </Card>
   );

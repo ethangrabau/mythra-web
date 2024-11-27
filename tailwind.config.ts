@@ -1,4 +1,3 @@
-// tailwind.config.ts
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
@@ -8,7 +7,13 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        obra: ['var(--font-obra)'],
+        geist: ['var(--font-geist)'],
+        'geist-mono': ['var(--font-geist-mono)'],
+      },
+    },
   },
   plugins: [],
 }

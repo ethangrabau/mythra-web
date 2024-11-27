@@ -11,11 +11,9 @@ export default function Home() {
   const handleStartSession = async () => {
     try {
       const sessionId = await startSession();
-      // Navigate to session page with the session ID
       router.push(`/session/${sessionId}`);
     } catch (err) {
       console.error('Failed to start session:', err);
-      // Optionally show error to user
     }
   };
 
@@ -23,31 +21,31 @@ export default function Home() {
     <main className="flex-1 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Welcome to Mythra</h2>
-          <p className="text-gray-600 mt-2">Start a new session or view past recordings.</p>
+          <h2 className="text-2xl font-obra text-gray-100">Welcome to Mythra</h2>
+          <p className="text-gray-400 mt-2 font-obra">Start a new session or view past recordings.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <button 
-            onClick={handleStartSession}  // Updated this line
-            className="p-8 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] text-left group"
+            onClick={handleStartSession}
+            className="p-8 rounded-xl border border-gray-700 bg-gray-800/50 shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:bg-gray-800/80 transition-all duration-200 hover:scale-[1.02] text-left group backdrop-blur-sm"
           >
             <div className="flex items-center gap-3 mb-2">
-              <PlayCircle className="w-6 h-6 text-green-600 group-hover:scale-110 transition-transform" />
-              <h3 className="text-lg font-semibold text-gray-800">Start New Session</h3>
+              <PlayCircle className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <h3 className="text-lg font-obra text-gray-100">Start New Session</h3>
             </div>
-            <p className="text-sm text-gray-600">Begin recording a new D&D session with AI-powered visualizations.</p>
+            <p className="text-sm text-gray-400 font-obra">Begin recording a new D&D session with AI-powered visualizations.</p>
           </button>
 
           <button 
             onClick={() => router.push('/recaps')}
-            className="p-8 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] text-left group"
+            className="p-8 rounded-xl border border-gray-700 bg-gray-800/50 shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:bg-gray-800/80 transition-all duration-200 hover:scale-[1.02] text-left group backdrop-blur-sm"
           >
             <div className="flex items-center gap-3 mb-2">
-              <Images className="w-6 h-6 text-purple-600 group-hover:scale-110 transition-transform" />
-              <h3 className="text-lg font-semibold text-gray-800">View Recaps</h3>
+              <Images className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
+              <h3 className="text-lg font-obra text-gray-100">View Recaps</h3>
             </div>
-            <p className="text-sm text-gray-600">Browse through past session recaps and generated imagery.</p>
+            <p className="text-sm text-gray-400 font-obra">Browse through past session recaps and generated imagery.</p>
           </button>
         </div>
       </div>

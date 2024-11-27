@@ -151,15 +151,15 @@ const SessionPage = () => {
   }, [sessionIdFromUrl, sessionData, startSession]);
 
   return (
-    <main className="h-screen w-full bg-gray-50 overflow-hidden">
+    <main className="h-screen w-full bg-gray-900 overflow-hidden">
       {/* Printing in Progress Overlay */}
       {isPrinting && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/75 text-white text-lg">
           <p>Printing in progress. Please wait...</p>
-          <div className="w-3/4 mt-4 h-4 bg-gray-600 rounded">
+          <div className="w-3/4 mt-4 h-4 bg-gray-700 rounded">
             <div
-              className="h-4 bg-green-400 rounded"
-              style={{ width: `${progress}%` }} // Dynamic progress bar width
+              className="h-4 bg-green-500 rounded"
+              style={{ width: `${progress}%` }}
             ></div>
           </div>
         </div>
@@ -167,7 +167,7 @@ const SessionPage = () => {
   
       {/* Error Message */}
       {error || hookError ? (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 rounded-lg bg-red-50 p-4 text-red-700 text-sm">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 rounded-lg bg-red-900/50 p-4 text-red-200 text-sm">
           {error || hookError}
         </div>
       ) : null}
@@ -180,8 +180,8 @@ const SessionPage = () => {
           )}
         >
           <div className="h-full overflow-auto p-4 space-y-4">
-            <h2 className="text-2xl font-bold text-gray-800">Session Recording</h2>
-            <p className="text-gray-600 mt-2">
+            <h2 className="text-2xl font-obra text-gray-100">Session Recording</h2>
+            <p className="text-gray-400 mt-2 font-obra">
               Control and manage your D&D session recordings.
             </p>
   
@@ -192,8 +192,8 @@ const SessionPage = () => {
                 className={cn(
                   'p-4 rounded-lg text-white transition-all',
                   isRecording
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-green-600 hover:bg-green-700'
+                    ? 'bg-red-700 hover:bg-red-800'
+                    : 'bg-green-700 hover:bg-green-800'
                 )}
               >
                 {isRecording ? (
@@ -210,7 +210,7 @@ const SessionPage = () => {
               </button>
               <button
                 onClick={handleRestart}
-                className="p-4 rounded-lg bg-yellow-600 text-white hover:bg-yellow-700 transition-all"
+                className="p-4 rounded-lg bg-yellow-700 text-white hover:bg-yellow-800 transition-all"
               >
                 <RotateCcw className="w-6 h-6 inline-block mr-2" />
                 Restart Session
@@ -218,7 +218,7 @@ const SessionPage = () => {
               <button
                 onClick={handlePrint}
                 disabled={!currentImageUrl || isPrinting}
-                className="p-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-4 rounded-lg bg-blue-700 text-white hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Printer className="w-6 h-6 inline-block mr-2" />
                 {isPrinting ? 'Printing...' : 'Print Image'}
@@ -251,7 +251,6 @@ const SessionPage = () => {
       </div>
     </main>
   );
-  
 };
 
 export default SessionPage;
