@@ -106,6 +106,17 @@ server.on('connection', (socket) => {
         timestamp: Date.now(),
       })
     );
+  } else if (message.payload.action === 'resetMemory') {
+    console.log('Server: Processing resetMemory command...');
+    fileWatcher.resetMemory();
+    socket.send(JSON.stringify({
+      type: 'status',
+      payload: { 
+        status: 'memoryReset',
+        success: true 
+      },
+      timestamp: Date.now()
+    })); 
   } else if (message.payload.action === 'startRecording') {
     console.log('Server: Processing startRecording command...');
     if (!currentSession) {

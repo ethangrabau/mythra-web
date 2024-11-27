@@ -3,14 +3,13 @@
 import { PlayCircle, StopCircle, RotateCcw, Printer } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 import ImageDisplay from '@/components/ImageDisplay';
 import { cn } from '@/lib/utils/ui';
 
 const SessionPage = () => {
   const params = useParams();
-  const router = useRouter();
   const sessionIdFromUrl = params?.sessionId as string;
 
   const {
@@ -22,6 +21,7 @@ const SessionPage = () => {
     isConnected,
     error: hookError,
     startSession,
+    resetMemory,
   } = useAudioRecorder();
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -36,27 +36,25 @@ const SessionPage = () => {
   const handleRestart = useCallback(async () => {
     try {
       setError(null);
-
+  
       if (isRecording) {
         stopRecording();
       }
-
-      const response = await fetch('/api/delete-memory-log', { method: 'POST' });
-      if (!response.ok) {
-        throw new Error('Failed to delete memory log');
-      }
-
-      console.log('Memory log deleted successfully.');
-
+  
+      setError('Resetting memory...');
+      await resetMemory();  // Use the new function
+  
+      setError('Starting new session...');
       const newSessionId = await startSession();
       if (newSessionId) {
-        router.push(`/session/${newSessionId}`);
+        setError(null);  // Clear error message when successful
       }
+  
     } catch (err) {
       console.error('Failed to restart session:', err);
       setError(err instanceof Error ? err.message : 'Failed to restart session');
     }
-  }, [isRecording, stopRecording, startSession, router]);
+  }, [isRecording, stopRecording, resetMemory, startSession]);
 
   const handlePrint = useCallback(() => {
     if (!currentImageUrl) {

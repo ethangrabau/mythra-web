@@ -1,6 +1,6 @@
-// src/components/ImageDisplay.tsx
 'use client';
 
+import React, { useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Expand, Minimize } from 'lucide-react';
 import { useImageNavigation } from '@/lib/hooks/useImageNavigation';
@@ -10,11 +10,11 @@ interface ImageDisplayProps {
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   isRecording?: boolean;
-  onImageChange?: (imageUrl: string | null) => void; 
+  onImageChange?: (imageUrl: string | null) => void;
 }
 
-export default function ImageDisplay({ 
-  sessionId, 
+export default function ImageDisplay({
+  sessionId,
   isFullscreen = false,
   onToggleFullscreen,
   isRecording = false,
@@ -29,16 +29,39 @@ export default function ImageDisplay({
     loading,
     totalImages,
     currentImageIndex
-  } = useImageNavigation(sessionId, onImageChange);  // Pass onImageChange here
+  } = useImageNavigation(sessionId, onImageChange);
 
-  // Debug logging
- // console.log('Image Display State:', {
- //   hasNextImage,
- //   hasPreviousImage,
- //   totalImages,
-//  currentImageIndex,
- //   currentImage
- // });
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (isRecording) return;
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          if (hasPreviousImage) {
+            goToPreviousImage();
+          }
+          break;
+        case 'ArrowRight':
+          if (hasNextImage) {
+            goToNextImage();
+          }
+          break;
+        case 'Enter':
+          if (onToggleFullscreen) {
+            onToggleFullscreen();
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  }, [goToNextImage, goToPreviousImage, hasNextImage, hasPreviousImage, isRecording, onToggleFullscreen]);
 
   if (!currentImage) {
     return (
@@ -56,26 +79,23 @@ export default function ImageDisplay({
         {/* Navigation controls - only hide during recording */}
         {!isRecording && (
           <>
-            <button
-              onClick={goToPreviousImage}
-              className={`absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all z-10
-                ${hasPreviousImage 
-                  ? 'bg-black/20 hover:bg-black/30 text-white cursor-pointer' 
-                  : 'bg-black/10 text-gray-400 cursor-not-allowed'}`}
-              disabled={!hasPreviousImage}
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              onClick={goToNextImage}
-              className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all z-10
-                ${hasNextImage 
-                  ? 'bg-black/20 hover:bg-black/30 text-white cursor-pointer' 
-                  : 'bg-black/10 text-gray-400 cursor-not-allowed'}`}
-              disabled={!hasNextImage}
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
+            {hasPreviousImage && (
+              <button
+                onClick={goToPreviousImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-all z-10"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+            
+            {hasNextImage && (
+              <button
+                onClick={goToNextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-all z-10"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
           </>
         )}
 
@@ -109,7 +129,7 @@ export default function ImageDisplay({
           />
         </div>
 
-        {/* Image count indicator - always show when multiple images exist */}
+        {/* Image count indicator */}
         {totalImages > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/20 text-white px-3 py-1 rounded-full text-sm">
             {currentImageIndex + 1} / {totalImages}

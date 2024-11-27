@@ -308,7 +308,21 @@ export function useAudioRecorder(): AudioRecorderHook {
   }, [sessionData, sendWebSocketMessage]);
   
   
+  const resetMemory = useCallback(async () => {
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket is not connected');
+    }
   
+    const resetMessage = {
+      type: 'command',
+      payload: { action: 'resetMemory' },
+      sessionId: sessionData?.sessionId,
+      timestamp: Date.now()
+    };
+  
+    socketRef.current.send(JSON.stringify(resetMessage));
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }, [sessionData?.sessionId]);
   
 
   const endSession = useCallback(() => {
@@ -341,5 +355,6 @@ export function useAudioRecorder(): AudioRecorderHook {
     sessionActive,
     sessionId: sessionData?.sessionId ?? null,
     startSession,
+    resetMemory,
   };
 }

@@ -1,0 +1,493 @@
+diff --git a/file-watcher.js b/file-watcher.js
+index cb12c6e..4c59b04 100644
+--- a/file-watcher.js
++++ b/file-watcher.js
+@@ -37,11 +37,13 @@ let memory = {
+ 
+ // Load memory
+ const loadMemory = () => {
++  console.log('LOAD MEMORY CALLED');
++  console.log('Current memory state before loading:', memory);
+   try {
+     if (fs.existsSync(memoryFilePath)) {
+       const data = fs.readFileSync(memoryFilePath, 'utf-8');
+       memory = JSON.parse(data);
+-      console.log('Memory loaded:', memory);
++      console.log('Memory loaded from file:', memory);
+     } else {
+       // Initialize empty memory file if it doesn't exist
+       const initialMemory = {
+@@ -61,6 +63,7 @@ const loadMemory = () => {
+       locations: [],
+     };
+   }
++  console.log('Final memory state after loading:', memory);
+ };
+ 
+ // Updated saveMemory function (removed redundant directory check)
+@@ -84,6 +87,20 @@ const saveMemory = (memoryUpdate) => {
+   }
+ };
+ 
++const resetMemory = () => {
++  // Reset the memory variable to initial state
++  memory = {
++    characters: [],
++    items: [],
++    locations: [],
++  };
++  // Force save the empty state to file
++  saveMemory(JSON.stringify(memory, null, 2));
++  // Force reload the memory from file
++  loadMemory();
++  console.log('Memory reset to initial state');
++};
++
+ // Process new transcription with context
+ const processTranscriptionData = async (transcriptionData) => {
+   const { transcriptions, sessionId } = transcriptionData;
+@@ -176,4 +193,5 @@ const startFileWatcher = () => {
+ 
+ export const fileWatcher = {
+   start: startFileWatcher,
++  resetMemory: resetMemory,
+ };
+\ No newline at end of file
+diff --git a/package.json b/package.json
+index 04d6a06..75bd004 100644
+--- a/package.json
++++ b/package.json
+@@ -1,47 +1,49 @@
+ {
+-  "name": "mythra-web",
+-  "version": "0.1.0",
+-  "type": "module",
+-  "private": true,
+-  "scripts": {
+-    "dev": "next dev",
+-    "build": "next build",
+-    "start": "next start",
+-    "lint": "next lint"
+-  },
+-  "dependencies": {
+-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+-    "@radix-ui/react-icons": "^1.3.1",
+-    "@types/express": "^5.0.0",
+-    "@types/ws": "^8.5.13",
+-    "axios": "^1.7.7",
+-    "class-variance-authority": "^0.7.0",
+-    "clsx": "^2.1.1",
+-    "dotenv": "^16.4.5",
+-    "express": "^4.21.1",
+-    "fluent-ffmpeg": "^2.1.3",
+-    "form-data": "^4.0.1",
+-    "lucide-react": "^0.454.0",
+-    "next": "15.0.2",
+-    "node-fetch": "^2.7.0",
+-    "openai": "^4.71.1",
+-    "react": "19.0.0-rc-02c0e824-20241028",
+-    "react-dom": "19.0.0-rc-02c0e824-20241028",
+-    "shadcn-ui": "^0.9.2",
+-    "socket.io": "^4.8.1",
+-    "socket.io-client": "^4.8.1",
+-    "tailwind-merge": "^2.5.4",
+-    "ts-node": "^10.9.2",
+-    "ws": "^8.18.0"
+-  },
+-  "devDependencies": {
+-    "@types/node": "^20",
+-    "@types/react": "^18",
+-    "@types/react-dom": "^18",
+-    "eslint": "^8",
+-    "eslint-config-next": "15.0.2",
+-    "postcss": "^8",
+-    "tailwindcss": "^3.4.1",
+-    "typescript": "^5.6.3"
++    "name": "mythra-web",
++    "version": "0.1.0",
++    "type": "module",
++    "private": true,
++    "scripts": {
++      "dev": "next dev",
++      "build": "next build",
++      "start": "next start",
++      "lint": "next lint",
++      "dev:server": "nodemon your-server-file.js"
++    },
++    "dependencies": {
++      "@ffmpeg-installer/ffmpeg": "^1.1.0",
++      "@radix-ui/react-icons": "^1.3.1",
++      "@types/express": "^5.0.0",
++      "@types/ws": "^8.5.13",
++      "axios": "^1.7.7",
++      "class-variance-authority": "^0.7.0",
++      "clsx": "^2.1.1",
++      "dotenv": "^16.4.5",
++      "express": "^4.21.1",
++      "fluent-ffmpeg": "^2.1.3",
++      "form-data": "^4.0.1",
++      "lucide-react": "^0.454.0",
++      "next": "15.0.2",
++      "node-fetch": "^2.7.0",
++      "openai": "^4.71.1",
++      "react": "19.0.0-rc-02c0e824-20241028",
++      "react-dom": "19.0.0-rc-02c0e824-20241028",
++      "shadcn-ui": "^0.9.2",
++      "socket.io": "^4.8.1",
++      "socket.io-client": "^4.8.1",
++      "tailwind-merge": "^2.5.4",
++      "ts-node": "^10.9.2",
++      "ws": "^8.18.0"
++    },
++    "devDependencies": {
++      "@types/node": "^20",
++      "@types/react": "^18",
++      "@types/react-dom": "^18",
++      "eslint": "^8",
++      "eslint-config-next": "15.0.2",
++      "postcss": "^8",
++      "tailwindcss": "^3.4.1",
++      "typescript": "^5.6.3"
++    }
+   }
+-}
++  
+\ No newline at end of file
+diff --git a/server.mjs b/server.mjs
+index 4744280..f519732 100644
+--- a/server.mjs
++++ b/server.mjs
+@@ -106,6 +106,17 @@ server.on('connection', (socket) => {
+         timestamp: Date.now(),
+       })
+     );
++  } else if (message.payload.action === 'resetMemory') {
++    console.log('Server: Processing resetMemory command...');
++    fileWatcher.resetMemory();
++    socket.send(JSON.stringify({
++      type: 'status',
++      payload: { 
++        status: 'memoryReset',
++        success: true 
++      },
++      timestamp: Date.now()
++    })); 
+   } else if (message.payload.action === 'startRecording') {
+     console.log('Server: Processing startRecording command...');
+     if (!currentSession) {
+diff --git a/src/app/api/delete-memory-log/route.ts b/src/app/api/delete-memory-log/route.ts
+index 0c88ce8..cc11df1 100644
+--- a/src/app/api/delete-memory-log/route.ts
++++ b/src/app/api/delete-memory-log/route.ts
+@@ -1,34 +1,31 @@
++// app/api/delete-memory-log/route.ts
+ import fs from 'fs/promises';
+ import path from 'path';
+ 
+ export async function POST() {
+-  const memoryLogPath = path.join(process.cwd(), 'metadata/memory-log.txt');
+-  console.log('API invoked: /api/delete-memory-log');
+-  console.log('Resolved memory log path:', memoryLogPath);
+-
++  const memoryLogPath = path.join(process.cwd(), 'metadata', 'memory-log.txt');
++  
+   try {
+-    // Check if file exists
+-    await fs.access(memoryLogPath);
+-    console.log('File exists, attempting to delete...');
+-
+-    // Attempt to delete the file
+-    await fs.unlink(memoryLogPath);
+-    console.log('Memory log deleted successfully.');
+-    return new Response(JSON.stringify({ success: true }), { status: 200 });
++    // Create a new empty memory file
++    const initialMemory = {
++      characters: [],
++      items: [],
++      locations: [],
++    };
++    
++    // Write the empty memory state
++    await fs.writeFile(memoryLogPath, JSON.stringify(initialMemory, null, 2));
++    console.log('Memory reset successfully');
++    
++    return new Response(
++      JSON.stringify({ success: true }), 
++      { status: 200 }
++    );
+   } catch (error) {
+-    console.error('Error during deletion:', error);
+-
+-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+-      console.warn('File not found, returning success response.');
+-      return new Response(
+-        JSON.stringify({ success: true, message: 'File already deleted' }),
+-        { status: 200 }
+-      );
+-    }
+-
++    console.error('Failed to reset memory:', error);
+     return new Response(
+-      JSON.stringify({ error: 'Failed to delete memory log' }),
++      JSON.stringify({ error: 'Failed to reset memory' }), 
+       { status: 500 }
+     );
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/src/app/session/[sessionId]/page.tsx b/src/app/session/[sessionId]/page.tsx
+index 8b4b5b2..ec2cf46 100644
+--- a/src/app/session/[sessionId]/page.tsx
++++ b/src/app/session/[sessionId]/page.tsx
+@@ -3,14 +3,13 @@
+ import { PlayCircle, StopCircle, RotateCcw, Printer } from 'lucide-react';
+ import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
+ import { useState, useEffect, useCallback } from 'react';
+-import { useParams, useRouter } from 'next/navigation';
++import { useParams } from 'next/navigation';
+ import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
+ import ImageDisplay from '@/components/ImageDisplay';
+ import { cn } from '@/lib/utils/ui';
+ 
+ const SessionPage = () => {
+   const params = useParams();
+-  const router = useRouter();
+   const sessionIdFromUrl = params?.sessionId as string;
+ 
+   const {
+@@ -22,6 +21,7 @@ const SessionPage = () => {
+     isConnected,
+     error: hookError,
+     startSession,
++    resetMemory,
+   } = useAudioRecorder();
+   const [error, setError] = useState<string | null>(null);
+   const [isFullscreen, setIsFullscreen] = useState(false);
+@@ -36,27 +36,25 @@ const SessionPage = () => {
+   const handleRestart = useCallback(async () => {
+     try {
+       setError(null);
+-
++  
+       if (isRecording) {
+         stopRecording();
+       }
+-
+-      const response = await fetch('/api/delete-memory-log', { method: 'POST' });
+-      if (!response.ok) {
+-        throw new Error('Failed to delete memory log');
+-      }
+-
+-      console.log('Memory log deleted successfully.');
+-
++  
++      setError('Resetting memory...');
++      await resetMemory();  // Use the new function
++  
++      setError('Starting new session...');
+       const newSessionId = await startSession();
+       if (newSessionId) {
+-        router.push(`/session/${newSessionId}`);
++        setError(null);  // Clear error message when successful
+       }
++  
+     } catch (err) {
+       console.error('Failed to restart session:', err);
+       setError(err instanceof Error ? err.message : 'Failed to restart session');
+     }
+-  }, [isRecording, stopRecording, startSession, router]);
++  }, [isRecording, stopRecording, resetMemory, startSession]);
+ 
+   const handlePrint = useCallback(() => {
+     if (!currentImageUrl) {
+diff --git a/src/components/ImageDisplay.tsx b/src/components/ImageDisplay.tsx
+index 74429fb..d16c58b 100644
+--- a/src/components/ImageDisplay.tsx
++++ b/src/components/ImageDisplay.tsx
+@@ -1,6 +1,6 @@
+-// src/components/ImageDisplay.tsx
+ 'use client';
+ 
++import React, { useEffect } from 'react';
+ import Image from 'next/image';
+ import { ChevronLeft, ChevronRight, Expand, Minimize } from 'lucide-react';
+ import { useImageNavigation } from '@/lib/hooks/useImageNavigation';
+@@ -10,11 +10,11 @@ interface ImageDisplayProps {
+   isFullscreen?: boolean;
+   onToggleFullscreen?: () => void;
+   isRecording?: boolean;
+-  onImageChange?: (imageUrl: string | null) => void; 
++  onImageChange?: (imageUrl: string | null) => void;
+ }
+ 
+-export default function ImageDisplay({ 
+-  sessionId, 
++export default function ImageDisplay({
++  sessionId,
+   isFullscreen = false,
+   onToggleFullscreen,
+   isRecording = false,
+@@ -29,16 +29,39 @@ export default function ImageDisplay({
+     loading,
+     totalImages,
+     currentImageIndex
+-  } = useImageNavigation(sessionId, onImageChange);  // Pass onImageChange here
++  } = useImageNavigation(sessionId, onImageChange);
+ 
+-  // Debug logging
+- // console.log('Image Display State:', {
+- //   hasNextImage,
+- //   hasPreviousImage,
+- //   totalImages,
+-//  currentImageIndex,
+- //   currentImage
+- // });
++  // Add keyboard navigation
++  useEffect(() => {
++    const handleKeydown = (event: KeyboardEvent) => {
++      if (isRecording) return;
++
++      switch (event.key) {
++        case 'ArrowLeft':
++          if (hasPreviousImage) {
++            goToPreviousImage();
++          }
++          break;
++        case 'ArrowRight':
++          if (hasNextImage) {
++            goToNextImage();
++          }
++          break;
++        case 'Enter':
++          if (onToggleFullscreen) {
++            onToggleFullscreen();
++          }
++          break;
++        default:
++          break;
++      }
++    };
++
++    window.addEventListener('keydown', handleKeydown);
++    return () => {
++      window.removeEventListener('keydown', handleKeydown);
++    };
++  }, [goToNextImage, goToPreviousImage, hasNextImage, hasPreviousImage, isRecording, onToggleFullscreen]);
+ 
+   if (!currentImage) {
+     return (
+@@ -56,26 +79,23 @@ export default function ImageDisplay({
+         {/* Navigation controls - only hide during recording */}
+         {!isRecording && (
+           <>
+-            <button
+-              onClick={goToPreviousImage}
+-              className={`absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all z-10
+-                ${hasPreviousImage 
+-                  ? 'bg-black/20 hover:bg-black/30 text-white cursor-pointer' 
+-                  : 'bg-black/10 text-gray-400 cursor-not-allowed'}`}
+-              disabled={!hasPreviousImage}
+-            >
+-              <ChevronLeft className="h-6 w-6" />
+-            </button>
+-            <button
+-              onClick={goToNextImage}
+-              className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all z-10
+-                ${hasNextImage 
+-                  ? 'bg-black/20 hover:bg-black/30 text-white cursor-pointer' 
+-                  : 'bg-black/10 text-gray-400 cursor-not-allowed'}`}
+-              disabled={!hasNextImage}
+-            >
+-              <ChevronRight className="h-6 w-6" />
+-            </button>
++            {hasPreviousImage && (
++              <button
++                onClick={goToPreviousImage}
++                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-all z-10"
++              >
++                <ChevronLeft className="h-6 w-6" />
++              </button>
++            )}
++            
++            {hasNextImage && (
++              <button
++                onClick={goToNextImage}
++                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-all z-10"
++              >
++                <ChevronRight className="h-6 w-6" />
++              </button>
++            )}
+           </>
+         )}
+ 
+@@ -109,7 +129,7 @@ export default function ImageDisplay({
+           />
+         </div>
+ 
+-        {/* Image count indicator - always show when multiple images exist */}
++        {/* Image count indicator */}
+         {totalImages > 1 && (
+           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/20 text-white px-3 py-1 rounded-full text-sm">
+             {currentImageIndex + 1} / {totalImages}
+diff --git a/src/lib/hooks/useAudioRecorder.ts b/src/lib/hooks/useAudioRecorder.ts
+index ff3bd46..52a3ff0 100644
+--- a/src/lib/hooks/useAudioRecorder.ts
++++ b/src/lib/hooks/useAudioRecorder.ts
+@@ -308,7 +308,21 @@ export function useAudioRecorder(): AudioRecorderHook {
+   }, [sessionData, sendWebSocketMessage]);
+   
+   
++  const resetMemory = useCallback(async () => {
++    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
++      throw new Error('WebSocket is not connected');
++    }
++  
++    const resetMessage = {
++      type: 'command',
++      payload: { action: 'resetMemory' },
++      sessionId: sessionData?.sessionId,
++      timestamp: Date.now()
++    };
+   
++    socketRef.current.send(JSON.stringify(resetMessage));
++    await new Promise(resolve => setTimeout(resolve, 1000));
++  }, [sessionData?.sessionId]);
+   
+ 
+   const endSession = useCallback(() => {
+@@ -341,5 +355,6 @@ export function useAudioRecorder(): AudioRecorderHook {
+     sessionActive,
+     sessionId: sessionData?.sessionId ?? null,
+     startSession,
++    resetMemory,
+   };
+ }
+\ No newline at end of file
+diff --git a/src/lib/types/audio.ts b/src/lib/types/audio.ts
+index d6e748e..9f4c16e 100644
+--- a/src/lib/types/audio.ts
++++ b/src/lib/types/audio.ts
+@@ -103,3 +103,10 @@ export interface AudioRecorderHook {
+   stopRecording: () => void; // Stop recording
+   endSession: () => void; // End the current session
+ }
++
++export interface QueuedMessage {
++  type: string;
++  payload: {
++    transcription?: TranscriptionData;
++  };
++}
+diff --git a/tsconfig.json b/tsconfig.json
+index c133409..bff9b53 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -22,6 +22,6 @@
+       "@/*": ["./src/*"]
+     }
+   },
+-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
++  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "next.config.js"],
+   "exclude": ["node_modules"]
+ }

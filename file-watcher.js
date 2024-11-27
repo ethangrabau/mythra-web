@@ -37,11 +37,13 @@ let memory = {
 
 // Load memory
 const loadMemory = () => {
+  console.log('LOAD MEMORY CALLED');
+  console.log('Current memory state before loading:', memory);
   try {
     if (fs.existsSync(memoryFilePath)) {
       const data = fs.readFileSync(memoryFilePath, 'utf-8');
       memory = JSON.parse(data);
-      console.log('Memory loaded:', memory);
+      console.log('Memory loaded from file:', memory);
     } else {
       // Initialize empty memory file if it doesn't exist
       const initialMemory = {
@@ -61,6 +63,7 @@ const loadMemory = () => {
       locations: [],
     };
   }
+  console.log('Final memory state after loading:', memory);
 };
 
 // Updated saveMemory function (removed redundant directory check)
@@ -82,6 +85,20 @@ const saveMemory = (memoryUpdate) => {
     console.error('Content type:', typeof memoryUpdate);
     console.error('Error details:', err.message);
   }
+};
+
+const resetMemory = () => {
+  // Reset the memory variable to initial state
+  memory = {
+    characters: [],
+    items: [],
+    locations: [],
+  };
+  // Force save the empty state to file
+  saveMemory(JSON.stringify(memory, null, 2));
+  // Force reload the memory from file
+  loadMemory();
+  console.log('Memory reset to initial state');
 };
 
 // Process new transcription with context
@@ -176,4 +193,5 @@ const startFileWatcher = () => {
 
 export const fileWatcher = {
   start: startFileWatcher,
+  resetMemory: resetMemory,
 };

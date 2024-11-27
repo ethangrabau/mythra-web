@@ -102,4 +102,12 @@ export interface AudioRecorderHook {
   startRecording: () => Promise<void>; // Start recording
   stopRecording: () => void; // Stop recording
   endSession: () => void; // End the current session
+  resetMemory: () => Promise<void>; // Add resetMemory here
+}
+
+export interface QueuedMessage {
+  type: string;
+  payload: {
+    transcription?: TranscriptionData;
+  };
 }
