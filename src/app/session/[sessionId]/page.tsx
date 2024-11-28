@@ -7,6 +7,8 @@ import { useParams, useRouter } from 'next/navigation';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 import ImageDisplay from '@/components/ImageDisplay';
 import { cn } from '@/lib/utils/ui';
+import RecordingProgress from '@/components/RecordingProgress';
+
 
 const SessionPage = () => {
   const params = useParams();
@@ -249,6 +251,7 @@ const SessionPage = () => {
           />
         </div>
       </div>
+      {isRecording && <RecordingProgress />}
     </main>
   );
 };
