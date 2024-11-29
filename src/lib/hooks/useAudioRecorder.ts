@@ -68,6 +68,8 @@ export function useAudioRecorder(): AudioRecorderHook {
   const sendWebSocketMessage = useCallback((message: WebSocketMessage) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(message));
+    } else {
+      console.warn('WebSocket is not connected');
     }
   }, []);
 
@@ -341,5 +343,6 @@ export function useAudioRecorder(): AudioRecorderHook {
     sessionActive,
     sessionId: sessionData?.sessionId ?? null,
     startSession,
+    sendWebSocketMessage,
   };
 }

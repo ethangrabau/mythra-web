@@ -73,6 +73,16 @@ server.on('connection', (socket) => {
       console.log('Server: Received message:', message);
   
       switch (message.type) {
+        case 'session_reset':
+          console.log('Server: Processing session reset command...');
+          fileWatcher.resetMemory();
+          socket.send(JSON.stringify({
+            type: 'status',
+            payload: { status: 'reset_complete' },
+            sessionId: message.sessionId || '',
+            timestamp: Date.now()
+          }));
+          break;
         case 'command':
   if (message.payload.action === 'start') {
     console.log('Server: Processing start command...');

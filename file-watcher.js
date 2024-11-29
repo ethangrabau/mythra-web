@@ -35,6 +35,18 @@ let memory = {
 // Track processed chunks by session
 //const processedChunks = new Map(); // sessionId -> Set of processed chunkIds
 
+// Add new reset function
+export const resetMemory = () => {
+  console.log('Resetting memory state...');
+  memory = {
+    characters: [],
+    items: [],
+    locations: [],
+  };
+  saveMemory(JSON.stringify(memory, null, 2));
+  console.log('Memory reset completed');
+};
+
 // Load memory
 const loadMemory = () => {
   try {
@@ -176,4 +188,5 @@ const startFileWatcher = () => {
 
 export const fileWatcher = {
   start: startFileWatcher,
+  resetMemory
 };

@@ -9,6 +9,7 @@ import ImageDisplay from '@/components/ImageDisplay';
 import { cn } from '@/lib/utils/ui';
 import RecordingProgress from '@/components/RecordingProgress';
 import WelcomeOverlay from '@/components/WelcomeOverlay';
+import type { WebSocketMessage } from '@/lib/types/audio';
 
 
 
@@ -26,6 +27,7 @@ const SessionPage = () => {
     isConnected,
     error: hookError,
     startSession,
+    sendWebSocketMessage,
   } = useAudioRecorder();
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -47,18 +49,39 @@ const SessionPage = () => {
   const handleRestart = useCallback(async () => {
     try {
       setError(null);
-
+  
       if (isRecording) {
         stopRecording();
       }
-
+  
+      // First delete memory log
       const response = await fetch('/api/delete-memory-log', { method: 'POST' });
       if (!response.ok) {
         throw new Error('Failed to delete memory log');
       }
-
-      console.log('Memory log deleted successfully.');
-
+  
+      // Send reset message through existing WebSocket connection
+      const message: WebSocketMessage = {
+        type: 'session_reset',  // Changed from 'command' to 'session_reset'
+        payload: {
+          action: 'reset',
+          sessionId: sessionData?.sessionId || '',
+          message: 'Resetting session'  // Added message to satisfy payload type
+        },
+        sessionId: sessionData?.sessionId || '',
+        timestamp: Date.now()
+      };
+  
+      if (isConnected) {
+        // Cast the message to satisfy TypeScript
+        sendWebSocketMessage(message as WebSocketMessage);
+        console.log('Sent session reset message');
+      } else {
+        console.warn('WebSocket not connected for session reset');
+      }
+  
+      console.log('Memory log deleted and reset triggered');
+  
       const newSessionId = await startSession();
       if (newSessionId) {
         router.push(`/session/${newSessionId}`);
@@ -67,7 +90,7 @@ const SessionPage = () => {
       console.error('Failed to restart session:', err);
       setError(err instanceof Error ? err.message : 'Failed to restart session');
     }
-  }, [isRecording, stopRecording, startSession, router]);
+  }, [isRecording, stopRecording, startSession, router, sessionData?.sessionId, isConnected, sendWebSocketMessage]);
 
   const handlePrint = useCallback(async () => {
     if (!currentImageUrl) {

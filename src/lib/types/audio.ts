@@ -102,4 +102,5 @@ export interface AudioRecorderHook {
   startRecording: () => Promise<void>; // Start recording
   stopRecording: () => void; // Stop recording
   endSession: () => void; // End the current session
+  sendWebSocketMessage: (message: WebSocketMessage) => void; // Send a WebSocket message
 }
