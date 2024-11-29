@@ -2,12 +2,14 @@
 
 import { PlayCircle, StopCircle, RotateCcw, Printer } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import TranscriptionViewer from '@/components/transcription/TranscriptionViewer';
 import ImageDisplay from '@/components/ImageDisplay';
 import { cn } from '@/lib/utils/ui';
 import RecordingProgress from '@/components/RecordingProgress';
+import WelcomeOverlay from '@/components/WelcomeOverlay';
+
 
 
 const SessionPage = () => {
@@ -30,6 +32,10 @@ const SessionPage = () => {
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [isPrinting, setIsPrinting] = useState(false); // Add this here
   const [progress, setProgress] = useState(0); // Progress bar state
+  const [showWelcome, setShowWelcome] = useState(true);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const IDLE_TIMEOUT = 90000; // 90 seconds in milliseconds
+
 
 
    // Add the debug useEffect here
@@ -110,6 +116,7 @@ const SessionPage = () => {
       stopRecording();
     } else if (isConnected) {
       startRecording();
+      setShowWelcome(false);  // Hide welcome screen when starting recording
     }
   }, [isRecording, isConnected, startRecording, stopRecording]);
 
@@ -152,8 +159,56 @@ const SessionPage = () => {
     }
   }, [sessionIdFromUrl, sessionData, startSession]);
 
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+    }
+    
+    // Only start idle timer if we're not showing welcome screen and not recording
+    if (!showWelcome && !isRecording) {
+      idleTimerRef.current = setTimeout(() => {
+        setShowWelcome(true);
+        // Call handleRestart when timeout occurs
+        handleRestart();
+      }, IDLE_TIMEOUT);
+    }
+  }, [showWelcome, isRecording, handleRestart]);
+  
+  // Add these effect hooks
+  useEffect(() => {
+    // Reset timer on any user interaction
+    const handleUserActivity = () => {
+      resetIdleTimer();
+    };
+  
+    // Add event listeners for user activity
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('click', handleUserActivity);
+  
+    // Start initial timer
+    resetIdleTimer();
+  
+    // Cleanup
+    return () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('click', handleUserActivity);
+    };
+  }, [resetIdleTimer]);
+  
+  // Reset idle timer when recording starts/stops
+  useEffect(() => {
+    resetIdleTimer();
+  }, [isRecording, resetIdleTimer]);
+  
   return (
     <main className="h-screen w-full bg-gray-900 overflow-hidden">
+      {/* Overlay - place first */}
+      {showWelcome && !isRecording && <WelcomeOverlay />}
       {/* Printing in Progress Overlay */}
       {isPrinting && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/75 text-white text-lg">
