@@ -13,12 +13,19 @@ export function LocationList({ locations }: LocationListProps) {
   return (
     <div className='space-y-4'>
       {locations.map((location: ILocation) => (
-        <Card key={location._id.toString()} className='hover:shadow-md transition-shadow m-2'>
+        <Card key={location._id.toString()} className='overflow-hidden hover:shadow-md transition-shadow m-2'>
           <CardContent className='p-6'>
-            <div className='flex justify-between items-start'>
-              <div className='w-48 min-h-[16rem] flex-shrink-0'>
+            {/* <div className='flex justify-between items-start'> */}
+            <div className='flex'>
+              <div className='relative w-48 min-h-[16rem] flex-shrink-0'>
                 {/* Image */}
-                <Image src={location.imageUrl || 'placeholder-character.jpg'} alt='default location' fill />
+                <Image
+                  src={location.imageUrl || 'placeholder-character.jpg'}
+                  alt='default location'
+                  fill
+                  className='object-cover'
+                  sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+                />
               </div>
               <div className='space-y-4 flex-1'>
                 {/* Description */}

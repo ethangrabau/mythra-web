@@ -25,6 +25,7 @@ export async function getCampaignLocations(campaignId: string) {
 
     return JSON.parse(JSON.stringify(campaign.locations));
   } catch (error: any) {
+    console.log(`Error fetching campaign: ${campaignId}`);
     console.log('Error fetching campaign locations: ', error);
     throw error;
   }

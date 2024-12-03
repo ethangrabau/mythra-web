@@ -10,6 +10,8 @@ type LocationsPageProps = {
 
 export default async function LocationsPage({ params: paramsPromise }: LocationsPageProps) {
   const params = await paramsPromise;
+
+  console.log(`Inside locations page, params.campaignId is ${params.campaignId}`);
   const locations = await getCampaignLocations(params.campaignId);
 
   if (!locations) return notFound();
