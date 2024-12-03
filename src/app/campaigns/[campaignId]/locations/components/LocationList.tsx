@@ -2,8 +2,8 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { ILocation } from '@/lib/models/Location';
-import { LocationWithId } from '../actions';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type LocationListProps = {
   locations: ILocation[];
@@ -11,29 +11,51 @@ type LocationListProps = {
 
 export function LocationList({ locations }: LocationListProps) {
   return (
-    <div className='space-y-4'>
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
       {locations.map((location: ILocation) => (
-        <Card key={location._id.toString()} className='overflow-hidden hover:shadow-md transition-shadow m-2'>
-          <CardContent className='p-6'>
-            {/* <div className='flex justify-between items-start'> */}
+        <Link key={location._id.toString()} href={`/locations/${location._id.toString()}`}>
+          <Card className='overflow-hidden hover:shadow-lg transition-shadow'>
             <div className='flex'>
               <div className='relative w-48 min-h-[16rem] flex-shrink-0'>
                 {/* Image */}
                 <Image
-                  src={location.imageUrl || 'placeholder-character.jpg'}
-                  alt='default location'
+                  src={location.imageUrl || '/placeholder-location.jpg'}
+                  alt={location.name}
                   fill
                   className='object-cover'
                   sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+                  onError={(e: any) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/placeholder-location.jpg';
+                  }}
                 />
               </div>
-              <div className='space-y-4 flex-1'>
+
+              {/* Location Details */}
+              <CardContent className='flex flex-col justify-between p-4'>
+                <div>
+                  {/* Header */}
+                  <h3 className='text-2xl font-bold text-gray-900'>{location.name}</h3>
+                  <p className='text-sm text-gray-500'>{location.type}</p>
+                </div>
+
                 {/* Description */}
-                <p className='text-gray-600'>{location.description}</p>
-              </div>
+                <p className='text-gray-600 mt-2 line-clamp-3'>{location.description}</p>
+
+                {/* Tags */}
+                {location.tags && location.tags.length > 0 && (
+                  <div className='flex flex-wrap gap-2 mt-4'>
+                    {location.tags.map((tag, index) => (
+                      <span key={index} className='bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded'>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
             </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </Link>
       ))}
     </div>
   );
