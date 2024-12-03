@@ -1,5 +1,6 @@
 import mongoose, { Document, Types, Schema } from 'mongoose';
 import { ISession } from './Session';
+import { ILocation } from './Location';
 
 export interface ICampaign extends Document {
   name: string;
@@ -12,7 +13,7 @@ export interface ICampaign extends Document {
     joinDate: Date;
     leaveDate?: Date;
   }[];
-  locations: Types.ObjectId[]; // Array of Locations linked to this campaign
+  locations: Types.ObjectId[] | ILocation[]; // Array of Locations linked to this campaign
   setting: string;
   startDate: Date;
   endDate?: Date;

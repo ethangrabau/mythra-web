@@ -2,6 +2,7 @@ import mongoose, { Document, Schema, Types, model } from 'mongoose';
 
 // Interface for Location
 export interface ILocation extends Document {
+  _id: Types.ObjectId;
   name: string;
   description: string;
   imageUrl?: string;
