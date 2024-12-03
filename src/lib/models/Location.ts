@@ -37,7 +37,7 @@ const LocationSchema = new Schema<ILocation>(
   {
     name: { type: String, required: true },
     description: { type: String, required: true },
-    imageUrl: { type: String },
+    imageUrl: String,
     transcriptionId: { type: Schema.Types.ObjectId, ref: 'Transcription' },
     type: {
       type: String,

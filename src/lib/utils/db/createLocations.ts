@@ -6,7 +6,7 @@ export async function createLocations(campaigns: any[], quests: any[]) {
     {
       name: 'Phandalin',
       description:
-        'A small frontier town located east of the Sword Mountains, experiencing a rebirth after being abandoned for centuries.',
+        'A somewhat small frontier town located east of the Sword Mountains, experiencing a rebirth after being abandoned for centuries.',
       type: 'town',
       isDiscovered: true,
       imageUrl: 'https://i.ibb.co/P6bLrkc/location.png',
@@ -54,7 +54,7 @@ export async function createLocations(campaigns: any[], quests: any[]) {
       name: 'Barovia Village',
       description: 'A dreary village overshadowed by the presence of Count Strahd von Zarovich, surrounded by mist.',
       type: 'village',
-      imageUrl: 'https://i.ibb.co/L8MWBVj/barovia-Village.png',
+      imageUrl: 'https://i.ibb.co/L8MWBVj/location.png',
       isDiscovered: true,
       isRestricted: false,
       campaigns: [campaigns[1]._id], // Second campaign
@@ -101,7 +101,7 @@ export async function createLocations(campaigns: any[], quests: any[]) {
       name: 'The High Road',
       description: 'A major trade route along the Sword Coast connecting Neverwinter and Waterdeep.',
       type: 'wilderness',
-      imageUrl: 'https://i.ibb.co/9q2RBPQ/the-HIgh-Road.jpg',
+      imageUrl: 'https://i.ibb.co/9q2RBPQ/location.png',
       isDiscovered: true,
       isRestricted: false,
       campaigns: [campaigns[0]._id, campaigns[1]._id],
@@ -116,7 +116,7 @@ export async function createLocations(campaigns: any[], quests: any[]) {
       name: 'Triboar Trail',
       description: 'A lesser-used trail branching off from the High Road, leading to Phandalin.',
       type: 'wilderness',
-      imageUrl: 'https://i.ibb.co/vxBKtwV/location.jpg',
+      imageUrl: 'https://i.ibb.co/vxBKtwV/location.png',
       isDiscovered: true,
       isRestricted: false,
       campaigns: [campaigns[0]._id],

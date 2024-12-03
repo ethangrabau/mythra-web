@@ -2,6 +2,7 @@ import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
 // Character Interface
 export interface ICharacter extends Document {
+  _id: Types.ObjectId;
   playerId: Types.ObjectId;
   name: string;
   class: {

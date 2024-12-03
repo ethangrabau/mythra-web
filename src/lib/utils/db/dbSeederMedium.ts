@@ -8,6 +8,8 @@ import { Session } from '../../models/Session.js';
 import { Player } from '../../models/Player.js';
 import { Character } from '../../models/Character.js';
 import { Quest } from '../../models/Quest.js';
+import { Transcription } from '@/lib/models/Transcription.js';
+import { Location } from '@/lib/models/Location.js';
 import mongoose from 'mongoose';
 
 import { createPlayers } from './createPlayers.js';
@@ -37,6 +39,8 @@ async function clearDatabase() {
     Player.deleteMany({}),
     Character.deleteMany({}),
     Quest.deleteMany({}),
+    Transcription.deleteMany({}),
+    Location.deleteMany({}),
   ]);
   console.log('Cleared db data. Ready to seed!');
 }
