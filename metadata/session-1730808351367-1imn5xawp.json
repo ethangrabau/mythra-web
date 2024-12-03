@@ -1,0 +1,16 @@
+{
+  "sessionId": "session-1730808351367-1imn5xawp",
+  "startTime": 1730808351371,
+  "status": "completed",
+  "totalDuration": 6000,
+  "totalSize": 95361,
+  "lastChunkId": 5,
+  "checksums": [
+    "792bfbf34b8b39705fd982e8dff9fa41df9230c0492a205c9970bbbf8d36faed",
+    "bacd5bd32bd6520e08e4959af019ee88152c12e07486594176b7f6fdb9ac522f",
+    "d6377698f6b7dd8134454a6e88e4108f9009a18790bec3f87d7accf5cdc27ef8",
+    "0f05a7e9b680bffd58f4900d6d43b62befc3ce9d3a4e84c6a2face88cbfab51b",
+    "7bd9c5e83924d5b4839c32c6cfd691ffece48ba7c805881aae8b8216f272b78b",
+    "476b2760c612a5002b5a63c4e748ce80e759f51983c50dda2708a6b87cda4be4"
+  ]
+}

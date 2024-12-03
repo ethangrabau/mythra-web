@@ -1,0 +1,19 @@
+{
+  "sessionId": "session-1730761722394-4j0sx0xte",
+  "startTime": 1730761722399,
+  "status": "completed",
+  "totalDuration": 4000,
+  "totalSize": 50780,
+  "lastChunkId": 3,
+  "checksums": [
+    "33f7f0a2e298961df0f5454e38c45e42b95b31535992e15ae610395ef7176c63",
+    "53eff84dd369894d37263a4c8183f001ae9e8bb6cdcddbc8e67649a371597c20",
+    "c7196121a68e1f7f257c002f0fd548e1ada60687e7a9c76c9cbc1ccf7222ddd9",
+    "8b6d2643e4fb5fe4670d5dc19454c0bdf4408a2531bb88fcf636bacc41f69ed3"
+  ],
+  "transcription": {
+    "text": "Hello, this is a test.",
+    "timestamp": 1730761728046,
+    "sessionId": "session-1730761722394-4j0sx0xte"
+  }
+}

@@ -8,27 +8,50 @@ import type {
   WebSocketMessage,
   AudioRecorderState,
   WebSocketPayload,
+  TranscriptionData,
+  SessionStatus, // Ensure this import matches your types file
 } from '../types/audio';
 
 interface WindowWithAudioContext extends Window {
   webkitAudioContext: typeof AudioContext;
 }
 
-export function useAudioRecorder(): AudioRecorderState & {
+// Define default session data to use when sessionData is null
+const defaultSessionData: SessionMetadata = {
+  sessionId: '',
+  startTime: Date.now(),
+  status: 'initializing' as SessionStatus, // Ensure it matches SessionStatus type
+  chunks: [],
+  totalDuration: 0,
+  totalSize: 0,
+};
+
+export function useAudioRecorder(): {
+  isRecording: boolean;
+  error: string | null;
+  audioLevel: number;
+  isConnected: boolean;
+  sessionData: SessionMetadata | null;
+  transcriptions: TranscriptionData[];
+  sessionActive: boolean;
+  sessionId: string | null;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
+  endSession: () => void;
 } {
-  const [isRecording, setIsRecording] = useState(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [audioLevel, setAudioLevel] = useState(0);
-  const [isConnected, setIsConnected] = useState(false);
+  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
   const [sessionData, setSessionData] = useState<SessionMetadata | null>(null);
+  const [transcriptions, setTranscriptions] = useState<TranscriptionData[]>([]);
+  const [sessionActive, setSessionActive] = useState<boolean>(false);
 
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectAttempts = useRef(0);
+  const reconnectAttempts = useRef<number>(0);
   const maxReconnectAttempts = 5;
 
   const sendWebSocketMessage = useCallback((message: WebSocketMessage) => {
@@ -80,39 +103,54 @@ export function useAudioRecorder(): AudioRecorderState & {
             break;
           }
           case 'recording_complete': {
-            const completePayload = message.payload as WebSocketPayload['recording_complete'];
-            console.log('Recording complete payload:', completePayload); // Add this for debugging
-
-            setSessionData(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                status: 'completed',
-                // Only update transcription if it exists in payload
-                ...(completePayload.transcription && {
-                  transcription: completePayload.transcription,
-                }),
-              };
-            });
-            break;
-          }
-          case 'status': {
-            const statusPayload = message.payload as WebSocketPayload['status'];
-            setSessionData(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                status: statusPayload.status,
-                totalDuration: statusPayload.totalDuration ?? prev.totalDuration,
-                totalSize: statusPayload.totalSize ?? prev.totalSize,
-              };
-            });
+            setSessionData(prev => (prev ? { ...prev, status: 'completed' as SessionStatus } : defaultSessionData));
             break;
           }
           case 'ack': {
             const ackPayload = message.payload as WebSocketPayload['ack'];
             console.log('Chunk acknowledged:', ackPayload.chunkId);
             break;
+          }
+          case 'status': {
+            const statusPayload = message.payload as WebSocketPayload['status'];
+            console.log('Status update:', statusPayload.status);
+
+            setSessionData(prev => {
+              if (!prev) return { ...defaultSessionData, status: statusPayload.status as SessionStatus }; // Ensure status is cast to SessionStatus
+              return { ...prev, status: statusPayload.status as SessionStatus };
+            });
+            break;
+          }
+          case 'command': {
+            const commandPayload = message.payload as WebSocketPayload['command'];
+            if (commandPayload.action === 'start') {
+              setSessionActive(true);
+              setTranscriptions([]); // Clear transcriptions for new session
+            } else if (commandPayload.action === 'stop') {
+              setIsRecording(false);
+            }
+            console.log('Command received:', commandPayload.action);
+            break;
+          }
+          case 'chunk': {
+            const chunkPayload = message.payload as WebSocketPayload['chunk'];
+            console.log('Chunk message:', chunkPayload);
+            break;
+          }
+          case 'transcription': {
+            const transcriptionPayload = message.payload as TranscriptionData;
+            setTranscriptions(prev => {
+              // Only update if there's new data
+              if (prev.length === 0 || prev[prev.length - 1].timestamp !== transcriptionPayload.timestamp) {
+                return [...prev, transcriptionPayload];
+              }
+              return prev;
+            });
+            console.log('Transcription received:', transcriptionPayload);
+            break;
+          }
+          default: {
+            console.warn('Unknown message type:', message);
           }
         }
       } catch (err) {
@@ -159,19 +197,21 @@ export function useAudioRecorder(): AudioRecorderState & {
         throw new Error('Not connected to server');
       }
 
-      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      let currentSessionId = sessionData?.sessionId;
+      if (!sessionActive) {
+        currentSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const startMessage: WebSocketMessage = {
+          type: 'command',
+          payload: { action: 'start', sessionId: currentSessionId },
+          sessionId: currentSessionId,
+          timestamp: Date.now(),
+        };
 
-      const startMessage: WebSocketMessage = {
-        type: 'command',
-        payload: { action: 'start', sessionId },
-        sessionId,
-        timestamp: Date.now(),
-      };
-
-      if (socketRef.current?.readyState === WebSocket.OPEN) {
-        socketRef.current.send(JSON.stringify(startMessage));
-      } else {
-        throw new Error('WebSocket not connected');
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+          socketRef.current.send(JSON.stringify(startMessage));
+        } else {
+          throw new Error('WebSocket not connected');
+        }
       }
 
       console.log('Starting recording...');
@@ -189,15 +229,17 @@ export function useAudioRecorder(): AudioRecorderState & {
       analyserRef.current = analyser;
       audioContextRef.current = audioContext;
 
-      const newSessionData: SessionMetadata = {
-        sessionId,
-        startTime: Date.now(),
-        status: 'recording',
-        chunks: [],
-        totalDuration: 0,
-        totalSize: 0,
-      };
-      setSessionData(newSessionData);
+      if (!sessionActive) {
+        const newSessionData: SessionMetadata = {
+          sessionId: currentSessionId!,
+          startTime: Date.now(),
+          status: 'recording' as SessionStatus,
+          chunks: [],
+          totalDuration: 0,
+          totalSize: 0,
+        };
+        setSessionData(newSessionData);
+      }
 
       const recorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus',
@@ -208,25 +250,21 @@ export function useAudioRecorder(): AudioRecorderState & {
           try {
             const arrayBuffer = await event.data.arrayBuffer();
             const checksum = await calculateChecksum(arrayBuffer);
-
             socketRef.current.send(arrayBuffer);
-
             const metadata: AudioChunkMetadata = {
               type: 'metadata',
               chunkId: sessionData?.chunks.length ?? 0,
               timestamp: Date.now(),
               size: arrayBuffer.byteLength,
               checksum,
-              sessionId: newSessionData.sessionId,
+              sessionId: currentSessionId!,
             };
-
             const message: WebSocketMessage = {
               type: 'chunk',
               payload: metadata,
-              sessionId: newSessionData.sessionId,
+              sessionId: currentSessionId!,
               timestamp: Date.now(),
             };
-
             sendWebSocketMessage(message);
 
             setSessionData(prev => {
@@ -252,7 +290,7 @@ export function useAudioRecorder(): AudioRecorderState & {
       console.error('Error starting recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, [isConnected, sendWebSocketMessage, sessionData]);
+  }, [isConnected, sendWebSocketMessage, sessionActive, sessionData]);
 
   const stopRecording = useCallback(() => {
     console.log('Stopping recording...');
@@ -282,17 +320,30 @@ export function useAudioRecorder(): AudioRecorderState & {
 
       setIsRecording(false);
       setAudioLevel(0);
-      setSessionData(prev => (prev ? { ...prev, status: 'processing' } : null));
+      setSessionData(prev => (prev ? { ...prev, status: 'processing' as SessionStatus } : defaultSessionData));
     }
   }, [sessionData, sendWebSocketMessage]);
+
+  const endSession = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+    }
+    setSessionActive(false);
+    setTranscriptions([]);
+    setSessionData(null);
+  }, [isRecording, stopRecording]);
 
   return {
     isRecording,
     startRecording,
     stopRecording,
+    endSession,
     error,
     audioLevel,
     isConnected,
     sessionData,
+    transcriptions,
+    sessionActive,
+    sessionId: sessionData?.sessionId ?? null,
   };
 }

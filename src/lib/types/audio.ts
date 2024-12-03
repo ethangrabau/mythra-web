@@ -1,86 +1,95 @@
-// src/lib/types/audio.ts
+// src/types/audio.ts
 export interface AudioChunkMetadata {
-    type: string;
-    chunkId: number;
-    timestamp: number;
-    size: number;
-    checksum: string;
-    sessionId: string;
-  }
-  
-  export interface SessionMetadata {
-    sessionId: string;
-    startTime: number;
-    status: 'initializing' | 'recording' | 'processing' | 'completed' | 'failed';
-    chunks: AudioChunkMetadata[];
-    totalDuration: number;
-    totalSize: number;
-    transcription?: TranscriptionData | null;
-  }
-  
-  export type WebSocketMessageType = 'error' | 'command' | 'chunk' | 'ack' | 'status' | 'recording_complete';
-  
-  interface ErrorPayload {
-    message: string;
-  }
-  
-  interface CommandPayload {
-    action: string;
-  }
-  
-  interface ChunkPayload {
-    chunkId: number;
-    sessionId: string;
-  }
-  
-  interface AckPayload {
-    chunkId: number;
-  }
-  
-  export interface StatusPayload {
-    status: 'initializing' | 'recording' | 'processing' | 'completed' | 'failed';
-    sessionId: string;
-    duration?: number; // Make optional since not all status messages will have this
-    size?: number; // Make optional since not all status messages will have this
-    totalDuration?: number; // Add this for compatibility
-    totalSize?: number; // Add this for compatibility
-  }
-  
-  export interface RecordingCompletePayload {
-    sessionId: string;
-    path: string; // Keep your existing fields
-    duration: number;
-    size: number;
-    transcription: TranscriptionData; // Add this field
-  }
-  
-  export type WebSocketPayload = {
-    error: ErrorPayload;
-    command: CommandPayload;
-    chunk: ChunkPayload;
-    ack: AckPayload;
-    status: StatusPayload;
-    recording_complete: RecordingCompletePayload;
-  }
-  
-  export interface WebSocketMessage {
-    type: WebSocketMessageType;
-    payload: WebSocketPayload[WebSocketMessageType];
-    sessionId: string;
-    timestamp: number;
-  }
-  
-  export interface AudioRecorderState {
-    isRecording: boolean;
-    error: string | null;
-    audioLevel: number;
-    isConnected: boolean;
-    sessionData: SessionMetadata | null;
-  }
+  type: string;
+  chunkId: number;
+  timestamp: number;
+  size: number;
+  checksum: string;
+  sessionId: string;
+}
 
-  // Add this interface for transcription data
-  export interface TranscriptionData {
-    text: string;
-    timestamp: number;
-    sessionId: string;
-  }
+export type SessionStatus = 'recording' | 'initializing' | 'processing' | 'completed' | 'failed';
+
+export interface SessionMetadata {
+  sessionId: string;
+  startTime: number;
+  status: SessionStatus;
+  chunks: AudioChunkMetadata[];
+  totalDuration: number;
+  totalSize: number;
+}
+
+export interface TranscriptionData {
+  text: string;
+  timestamp: number;
+  sessionId: string;
+}
+
+export type WebSocketMessageType =
+  | 'error'
+  | 'command'
+  | 'chunk'
+  | 'ack'
+  | 'status'
+  | 'recording_complete'
+  | 'transcription';
+
+export interface ErrorPayload {
+  message: string;
+}
+
+export interface CommandPayload {
+  action: 'start' | 'stop'; // Limited to 'start' or 'stop' for type safety
+  sessionId?: string;
+}
+
+export interface ChunkPayload {
+  chunkId: number;
+  sessionId: string;
+}
+
+export interface AckPayload {
+  chunkId: number;
+}
+
+export interface StatusPayload {
+  status: SessionStatus; // Ensures status matches SessionStatus type
+}
+
+export interface RecordingCompletePayload {
+  sessionId: string;
+  path: string; // Keep your existing fields
+  duration: number;
+  size: number;
+  transcription: TranscriptionData; // Add this field
+}
+
+export interface TranscriptionPayload extends TranscriptionData {}
+
+export interface WebSocketPayload {
+  error: ErrorPayload;
+  command: CommandPayload;
+  chunk: ChunkPayload;
+  ack: AckPayload;
+  status: StatusPayload;
+  recording_complete: RecordingCompletePayload;
+  transcription: TranscriptionPayload;
+}
+
+export interface WebSocketMessage {
+  type: WebSocketMessageType;
+  payload: WebSocketPayload[WebSocketMessageType];
+  sessionId: string;
+  timestamp: number;
+}
+
+export interface AudioRecorderState {
+  isRecording: boolean;
+  error: string | null;
+  audioLevel: number;
+  isConnected: boolean;
+  sessionData: SessionMetadata | null;
+  transcriptions: TranscriptionData[];
+  sessionActive: boolean;
+  sessionId: string | null;
+}
