@@ -32,7 +32,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
       <div className='flex justify-between items-start'>
         <div>
           <div className='flex items-center gap-3'>
-            <h1 className='text-3xl font-bold text-gray-900'>Session {session.sessionNumber}</h1>
+            <h1 className='text-3xl font-bold text-foreground'>Session {session.sessionNumber}</h1>
             <Badge variant='secondary'>{format(new Date(session.date), 'PPP')}</Badge>
           </div>
           <p className='mt-2 text-gray-600'>{session.summary}</p>
@@ -102,7 +102,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
               {session.combatEncounters.map((encounter: any, index: any) => (
                 <div key={index} className='p-4 bg-gray-50 rounded-lg'>
                   <div className='flex justify-between items-start mb-2'>
-                    <h4 className='font-medium text-gray-900'>{encounter.name}</h4>
+                    <h4 className='font-medium text-foreground'>{encounter.name}</h4>
                     <Badge>{encounter.difficulty}</Badge>
                   </div>
                   <p className='text-sm text-gray-600'>{encounter.outcome}</p>
@@ -125,7 +125,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
               {session.npcsIntroduced.map((npc: any, index: any) => (
                 <div key={index} className='p-4 bg-gray-50 rounded-lg'>
                   <div className='flex justify-between items-start mb-2'>
-                    <h4 className='font-medium text-gray-900'>{npc.name}</h4>
+                    <h4 className='font-medium text-foreground'>{npc.name}</h4>
                     <Badge variant={npc.isAlive ? 'success' : 'destructive'}>
                       {npc.isAlive ? 'Alive' : 'Deceased'}
                     </Badge>
@@ -154,7 +154,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
               {session.lootAwarded.map((loot: any, index: any) => (
                 <div key={index} className='p-4 bg-gray-50 rounded-lg flex justify-between items-center'>
                   <div>
-                    <h4 className='font-medium text-gray-900'>{loot.item}</h4>
+                    <h4 className='font-medium text-foreground'>{loot.item}</h4>
                     <p className='text-sm text-gray-500'>Quantity: {loot.quantity}</p>
                   </div>
                   {loot.value && <Badge variant='outline'>{loot.value} gp</Badge>}
@@ -175,7 +175,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           <CardContent>
             <div className='space-y-4'>
               <div className='p-4 bg-gray-50 rounded-lg'>
-                <h4 className='font-medium text-gray-900 mb-2'>Public Notes</h4>
+                <h4 className='font-medium text-foreground mb-2'>Public Notes</h4>
                 <p className='text-sm text-gray-600'>{session.notes.public}</p>
               </div>
             </div>

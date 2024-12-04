@@ -23,7 +23,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
     <div className='p-6'>
       <div className='mb-6 flex items-center justify-between'>
         <div>
-          <h2 className='text-2xl font-bold text-gray-900'>{campaign.name} Sessions</h2>
+          <h2 className='text-2xl font-bold text-foreground'>{campaign.name} Sessions</h2>
           <p className='text-sm text-gray-500 mt-1'>{campaign.sessions.pastSessions.length} sessions played</p>
         </div>
       </div>

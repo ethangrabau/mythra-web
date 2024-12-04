@@ -16,7 +16,7 @@ export default async function QuestsPage({ params: paramsPromise }: QuestPagePro
   return (
     <div className='p-6 space-y-6'>
       <div className='flex justify-between items-center'>
-        <h2 className='text-2xl font-bold text-gray-900'>Quests</h2>
+        <h2 className='text-2xl font-bold text-foreground'>Quests</h2>
       </div>
 
       <QuestBoard

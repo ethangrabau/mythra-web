@@ -14,7 +14,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
 
   return (
     <div className='p-2'>
-      {/* <h2 className='text-2xl font-bold text-gray-900 mb-6'>Party Members</h2> */}
+      {/* <h2 className='text-2xl font-bold text-foreground mb-6'>Party Members</h2> */}
       <CharacterGrid characters={characters} campaignId={params.campaignId} />
     </div>
   );

@@ -12,7 +12,7 @@ export function CharacterTraits({ personalityTraits, ideals, bonds, flaws }: Cha
     <div className='space-y-6'>
       {/* Personality Traits */}
       <div className='space-y-2'>
-        <h4 className='text-sm font-medium text-gray-900 flex items-center gap-2'>
+        <h4 className='text-sm font-medium text-foreground flex items-center gap-2'>
           <User className='h-4 w-4' />
           Personality Traits
         </h4>
@@ -28,7 +28,7 @@ export function CharacterTraits({ personalityTraits, ideals, bonds, flaws }: Cha
 
       {/* Ideals */}
       <div className='space-y-2'>
-        <h4 className='text-sm font-medium text-gray-900 flex items-center gap-2'>
+        <h4 className='text-sm font-medium text-foreground flex items-center gap-2'>
           <Star className='h-4 w-4' />
           Ideals
         </h4>
@@ -44,7 +44,7 @@ export function CharacterTraits({ personalityTraits, ideals, bonds, flaws }: Cha
 
       {/* Bonds */}
       <div className='space-y-2'>
-        <h4 className='text-sm font-medium text-gray-900 flex items-center gap-2'>
+        <h4 className='text-sm font-medium text-foreground flex items-center gap-2'>
           <Heart className='h-4 w-4' />
           Bonds
         </h4>
@@ -60,7 +60,7 @@ export function CharacterTraits({ personalityTraits, ideals, bonds, flaws }: Cha
 
       {/* Flaws */}
       <div className='space-y-2'>
-        <h4 className='text-sm font-medium text-gray-900 flex items-center gap-2'>
+        <h4 className='text-sm font-medium text-foreground flex items-center gap-2'>
           <AlertCircle className='h-4 w-4' />
           Flaws
         </h4>

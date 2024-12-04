@@ -44,7 +44,7 @@ const TranscriptionViewer = ({ transcriptions, isRecording, sessionActive, sessi
       {/* Header */}
       <div className='border-b px-4 py-3 flex items-center justify-between'>
         <div className='flex items-center gap-2'>
-          <h3 className='font-medium text-gray-900'>Session Transcript</h3>
+          <h3 className='font-medium text-foreground'>Session Transcript</h3>
           {sessionId && <span className='text-xs text-gray-500'>({sessionId})</span>}
         </div>
         {isRecording && (

@@ -56,7 +56,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
         <div className='w-full md:w-3/4'>
           <div className='space-y-4'>
             <div>
-              <h1 className='text-3xl font-bold text-gray-900 mb-2'>{character.name}</h1>
+              <h1 className='text-3xl font-bold text-foreground mb-2'>{character.name}</h1>
               <div className='flex flex-wrap gap-2 mb-4'>
                 <Badge variant='outline'>
                   {character.race} {character.subrace ? `(${character.subrace})` : ''}
@@ -150,7 +150,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
             <Card>
               <CardContent className='p-6 space-y-4'>
                 <div>
-                  <h3 className='font-medium text-gray-900 mb-2'>Background</h3>
+                  <h3 className='font-medium text-foreground mb-2'>Background</h3>
                   <p className='text-gray-600'>{character.background}</p>
                 </div>
                 {/* Add more background-related information here */}

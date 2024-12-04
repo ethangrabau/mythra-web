@@ -35,7 +35,7 @@ export function LocationList({ locations }: LocationListProps) {
               <CardContent className='flex flex-col justify-between p-4'>
                 <div>
                   {/* Header */}
-                  <h3 className='text-2xl font-bold text-gray-900'>{location.name}</h3>
+                  <h3 className='text-2xl font-bold text-foreground'>{location.name}</h3>
                   <p className='text-sm text-gray-500'>{location.type}</p>
                 </div>
 

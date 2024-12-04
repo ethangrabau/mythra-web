@@ -26,7 +26,7 @@ export function SessionList({ sessions }: SessionListProps) {
                 <div className='space-y-4 flex-1'>
                   {/* Header */}
                   <div className='flex items-center justify-between'>
-                    <h3 className='text-xl font-semibold text-gray-900'>Session {session.sessionNumber}</h3>
+                    <h3 className='text-xl font-semibold text-foreground'>Session {session.sessionNumber}</h3>
                     <span className='text-sm text-gray-500'>
                       {formatDistanceToNow(new Date(session.date), { addSuffix: true })}
                     </span>
@@ -67,7 +67,7 @@ export function SessionList({ sessions }: SessionListProps) {
                     {/* Combat Encounters */}
                     {session.combatEncounters.length > 0 && (
                       <div className='space-y-2'>
-                        <h4 className='text-sm font-medium text-gray-900'>Combat Encounters</h4>
+                        <h4 className='text-sm font-medium text-foreground'>Combat Encounters</h4>
                         <div className='space-y-1'>
                           {session.combatEncounters.map((encounter, index) => (
                             <div key={index} className='text-sm text-gray-600 flex items-center gap-2'>
@@ -86,7 +86,7 @@ export function SessionList({ sessions }: SessionListProps) {
                     {/* Locations Visited */}
                     {session.importantLocations.length > 0 && (
                       <div className='space-y-2'>
-                        <h4 className='text-sm font-medium text-gray-900'>Locations Visited:</h4>
+                        <h4 className='text-sm font-medium text-foreground'>Locations Visited:</h4>
                         <div className='flex flex-wrap gap-2'>
                           {session.importantLocations.map(location => (
                             <span key={location} className='px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600'>
