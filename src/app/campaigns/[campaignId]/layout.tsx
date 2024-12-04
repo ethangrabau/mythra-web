@@ -45,14 +45,14 @@ export default async function CampaignLayout({ children, params: paramsPromise }
   }
 
   return (
-    <div className='space-y-1'>
+    <div className='space-y-1 p-6'>
       <Suspense fallback={<LoadingSpinner />}>
         <CampaignHeader campaign={campaign} />
       </Suspense>
 
       <CampaignTabs />
 
-      <div className='bg-white rounded-lg shadow'>{children}</div>
+      <div className='bg-primary rounded-lg shadow'>{children}</div>
     </div>
   );
 }

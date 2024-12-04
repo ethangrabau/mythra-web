@@ -7,10 +7,10 @@ export default async function CampaignsPage() {
   const campaigns = await getCampaigns();
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-6 p-6'>
       {/* Header section */}
       <div className='flex justify-between items-center'>
-        <h1 className='text-3xl font-bold text-gray-900'>Campaigns</h1>
+        <h1 className='text-3xl font-bold text-foreground'>Campaigns</h1>
         <Link href='/campaigns/create'>
           <Button>Create Campaign</Button>
         </Link>
