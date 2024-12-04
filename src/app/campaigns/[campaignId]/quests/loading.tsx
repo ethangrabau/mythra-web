@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function QuestsLoading() {
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-6 space-y-6 bg-background'>
       <Skeleton className='h-8 w-32' />
 
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>

@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CharactersLoading() {
   return (
-    <div className='p-6'>
+    <div className='p-6 bg-background'>
       <Skeleton className='h-8 w-48 mb-6' />
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         {[...Array(4)].map((_, i) => (
