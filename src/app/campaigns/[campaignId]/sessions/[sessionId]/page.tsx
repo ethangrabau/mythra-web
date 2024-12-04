@@ -100,7 +100,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           <CardContent>
             <div className='space-y-4'>
               {session.combatEncounters.map((encounter: any, index: any) => (
-                <div key={index} className='p-4 bg-gray-50 rounded-lg'>
+                <div key={index} className='p-4 bg-secondary/50 rounded-lg'>
                   <div className='flex justify-between items-start mb-2'>
                     <h4 className='font-medium text-foreground'>{encounter.name}</h4>
                     <Badge>{encounter.difficulty}</Badge>
@@ -123,7 +123,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           <CardContent>
             <div className='space-y-4'>
               {session.npcsIntroduced.map((npc: any, index: any) => (
-                <div key={index} className='p-4 bg-gray-50 rounded-lg'>
+                <div key={index} className='p-4 bg-secondary/50 rounded-lg'>
                   <div className='flex justify-between items-start mb-2'>
                     <h4 className='font-medium text-foreground'>{npc.name}</h4>
                     <Badge variant={npc.isAlive ? 'success' : 'destructive'}>
@@ -152,7 +152,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           <CardContent>
             <div className='space-y-4'>
               {session.lootAwarded.map((loot: any, index: any) => (
-                <div key={index} className='p-4 bg-gray-50 rounded-lg flex justify-between items-center'>
+                <div key={index} className='p-4 bg-secondary/50 rounded-lg flex justify-between items-center'>
                   <div>
                     <h4 className='font-medium text-foreground'>{loot.item}</h4>
                     <p className='text-sm text-muted-foreground'>Quantity: {loot.quantity}</p>
@@ -174,7 +174,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           </CardHeader>
           <CardContent>
             <div className='space-y-4'>
-              <div className='p-4 bg-gray-50 rounded-lg'>
+              <div className='p-4 bg-secondary/50 rounded-lg'>
                 <h4 className='font-medium text-foreground mb-2'>Public Notes</h4>
                 <p className='text-sm text-muted-foreground'>{session.notes.public}</p>
               </div>

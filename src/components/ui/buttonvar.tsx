@@ -27,7 +27,7 @@ export function ButtonVar({
         size === 'lg' && 'px-6 py-3 text-lg',
 
         // Variant styles
-        variant === 'primary' && 'bg-blue-500 text-white hover:bg-blue-600',
+        variant === 'primary' && 'bg-primary text-white hover:bg-blue-600',
         variant === 'secondary' && 'bg-gray-500 text-white hover:bg-gray-600',
         variant === 'outline' && 'border-2 border-gray-300 hover:bg-gray-50',
 

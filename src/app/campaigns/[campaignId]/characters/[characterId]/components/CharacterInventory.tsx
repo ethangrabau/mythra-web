@@ -15,7 +15,7 @@ export function CharacterInventory({ inventory }: CharacterInventoryProps) {
   return (
     <div className='space-y-4'>
       {inventory.map((item, index) => (
-        <div key={index} className='flex items-center justify-between p-2 rounded-lg hover:bg-gray-50'>
+        <div key={index} className='flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50'>
           <div className='flex items-center gap-3'>
             <span className='font-medium text-foreground'>{item.item}</span>
             {item.quantity > 1 && <span className='text-sm text-muted-foreground'>×{item.quantity}</span>}

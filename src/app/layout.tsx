@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang='en' suppressHydrationWarning>
-      {/* <body className='bg-gray-50'> */}
+      {/* <body className='bg-secondary/50'> */}
       <body suppressHydrationWarning>
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem disableTransitionOnChange>
           <LayoutClient>{children}</LayoutClient>
