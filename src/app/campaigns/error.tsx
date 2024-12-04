@@ -6,7 +6,7 @@ export default function CampaignsError({ error, reset }: { error: Error & { dige
   return (
     <div className='flex flex-col items-center justify-center min-h-[400px] space-y-4'>
       <h2 className='text-2xl font-bold text-foreground'>Something went wrong!</h2>
-      <p className='text-gray-600'>{error.message || 'Failed to load campaigns'}</p>
+      <p className='text-muted-foreground'>{error.message || 'Failed to load campaigns'}</p>
       <div className='flex space-x-4'>
         <ButtonVar onClick={() => reset()}>Try again</ButtonVar>
         <ButtonVar variant='outline' onClick={() => window.location.reload()}>

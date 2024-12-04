@@ -92,7 +92,7 @@ function QuestCard({ quest, status }: QuestCardProps) {
         </div>
       </CardHeader>
       <CardContent className='p-4 pt-0 space-y-4'>
-        <p className='text-sm text-gray-600'>{quest.description}</p>
+        <p className='text-sm text-muted-foreground'>{quest.description}</p>
 
         {/* Quest Giver */}
         <div className='flex items-center gap-2 text-sm text-muted-foreground'>

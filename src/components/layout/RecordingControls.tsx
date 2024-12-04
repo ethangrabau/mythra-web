@@ -34,7 +34,7 @@ const RecordingControls = () => {
 
       {/* Session Status */}
       {sessionData && (
-        <div className='space-y-2 text-sm text-gray-600'>
+        <div className='space-y-2 text-sm text-muted-foreground'>
           <div className='flex justify-between'>
             <span>Duration:</span>
             <span>{formatDuration(sessionData.totalDuration)}</span>

@@ -25,7 +25,7 @@ export default function CampaignGrid({ campaigns }: { campaigns: CampaignProps[]
     return (
       <div className='text-center py-12'>
         <h3 className='text-lg font-medium text-foreground'>No campaigns yet</h3>
-        <p className='mt-2 text-gray-600'>Get started by creating your first campaign!</p>
+        <p className='mt-2 text-muted-foreground'>Get started by creating your first campaign!</p>
       </div>
     );
   }
@@ -57,25 +57,25 @@ export default function CampaignGrid({ campaigns }: { campaigns: CampaignProps[]
             <CardContent>
               <div className='space-y-4'>
                 <div className='flex items-center gap-4'>
-                  <div className='flex items-center gap-2 text-sm text-gray-600'>
+                  <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                     <Users className='h-4 w-4' />
                     <span>{campaign.players.length} players</span>
                   </div>
 
-                  <div className='flex items-center gap-2 text-sm text-gray-600'>
+                  <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                     <D20Icon className='h-4 w-4' />
                     <span>Level {campaign.level.current}</span>
                   </div>
                 </div>
 
                 {campaign.nextSessionDate && (
-                  <div className='flex items-center gap-2 text-sm text-gray-600'>
+                  <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                     <CalendarDays className='h-4 w-4' />
                     <span>Next: {new Date(campaign.nextSessionDate).toLocaleDateString()}</span>
                   </div>
                 )}
 
-                <div className='flex items-center gap-2 text-sm text-gray-600'>
+                <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                   <span className='font-semibold'>DM:</span>
                   <span>{campaign.dmId.email}</span>
                 </div>

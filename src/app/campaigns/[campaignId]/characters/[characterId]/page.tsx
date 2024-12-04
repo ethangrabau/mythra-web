@@ -68,7 +68,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
                 ))}
                 <Badge>{character.alignment}</Badge>
               </div>
-              <p className='text-gray-600'>{character.background}</p>
+              <p className='text-muted-foreground'>{character.background}</p>
             </div>
 
             <Card>
@@ -151,7 +151,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
               <CardContent className='p-6 space-y-4'>
                 <div>
                   <h3 className='font-medium text-foreground mb-2'>Background</h3>
-                  <p className='text-gray-600'>{character.background}</p>
+                  <p className='text-muted-foreground'>{character.background}</p>
                 </div>
                 {/* Add more background-related information here */}
               </CardContent>
@@ -161,7 +161,7 @@ export default async function CharacterPage({ params: paramsPromise }: Character
           <TabsContent value='notes'>
             <Card>
               <CardContent className='p-6'>
-                <p className='text-gray-600 whitespace-pre-wrap'>{character.notes || 'No notes recorded.'}</p>
+                <p className='text-muted-foreground whitespace-pre-wrap'>{character.notes || 'No notes recorded.'}</p>
               </CardContent>
             </Card>
           </TabsContent>

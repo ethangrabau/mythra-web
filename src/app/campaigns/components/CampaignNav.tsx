@@ -38,7 +38,7 @@ export function CampaignNav() {
             href={href}
             className={cn(
               'flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors',
-              isActive ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-100'
+              isActive ? 'bg-blue-500 text-white' : 'text-muted-foreground hover:bg-gray-100'
             )}>
             <Icon className='h-4 w-4' />
             <span>{label}</span>

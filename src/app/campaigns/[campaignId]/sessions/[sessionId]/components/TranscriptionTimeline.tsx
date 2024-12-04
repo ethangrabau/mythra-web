@@ -31,7 +31,7 @@ export const TranscriptionTimeline = ({ transcriptions }: TranscriptionTimelineP
               <AccordionTrigger className='hover:no-underline'>
                 <div className='flex items-center gap-4'>
                   <Badge variant='outline'>{formatTimestamp(transcription.timestamp)}</Badge>
-                  <span className='text-sm text-gray-600 text-left'>
+                  <span className='text-sm text-muted-foreground text-left'>
                     {transcription.content.substring(0, 100)}
                     {transcription.content.length > 100 ? '...' : ''}
                   </span>

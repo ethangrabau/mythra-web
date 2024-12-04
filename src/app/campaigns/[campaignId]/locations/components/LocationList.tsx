@@ -40,7 +40,7 @@ export function LocationList({ locations }: LocationListProps) {
                 </div>
 
                 {/* Description */}
-                <p className='text-gray-600 mt-2 line-clamp-3'>{location.description}</p>
+                <p className='text-muted-foreground mt-2 line-clamp-3'>{location.description}</p>
 
                 {/* Tags */}
                 {location.tags && location.tags.length > 0 && (

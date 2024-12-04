@@ -18,7 +18,7 @@ export function CharacterTraits({ personalityTraits, ideals, bonds, flaws }: Cha
         </h4>
         <ul className='space-y-2'>
           {personalityTraits.map((trait: string, index: number) => (
-            <li key={index} className='text-sm text-gray-600 pl-6 relative'>
+            <li key={index} className='text-sm text-muted-foreground pl-6 relative'>
               <span className='absolute left-0 top-1.5 w-1.5 h-1.5 rounded-full bg-blue-500' />
               {trait}
             </li>
@@ -34,7 +34,7 @@ export function CharacterTraits({ personalityTraits, ideals, bonds, flaws }: Cha
         </h4>
         <ul className='space-y-2'>
           {ideals.map((ideal: string, index: number) => (
-            <li key={index} className='text-sm text-gray-600 pl-6 relative'>
+            <li key={index} className='text-sm text-muted-foreground pl-6 relative'>
               <span className='absolute left-0 top-1.5 w-1.5 h-1.5 rounded-full bg-yellow-500' />
               {ideal}
             </li>
@@ -50,7 +50,7 @@ export function CharacterTraits({ personalityTraits, ideals, bonds, flaws }: Cha
         </h4>
         <ul className='space-y-2'>
           {bonds.map((bond, index) => (
-            <li key={index} className='text-sm text-gray-600 pl-6 relative'>
+            <li key={index} className='text-sm text-muted-foreground pl-6 relative'>
               <span className='absolute left-0 top-1.5 w-1.5 h-1.5 rounded-full bg-red-500' />
               {bond}
             </li>
@@ -66,7 +66,7 @@ export function CharacterTraits({ personalityTraits, ideals, bonds, flaws }: Cha
         </h4>
         <ul className='space-y-2'>
           {flaws.map((flaw, index) => (
-            <li key={index} className='text-sm text-gray-600 pl-6 relative'>
+            <li key={index} className='text-sm text-muted-foreground pl-6 relative'>
               <span className='absolute left-0 top-1.5 w-1.5 h-1.5 rounded-full bg-purple-500' />
               {flaw}
             </li>

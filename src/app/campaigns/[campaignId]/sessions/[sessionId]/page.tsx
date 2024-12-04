@@ -35,7 +35,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
             <h1 className='text-3xl font-bold text-foreground'>Session {session.sessionNumber}</h1>
             <Badge variant='secondary'>{format(new Date(session.date), 'PPP')}</Badge>
           </div>
-          <p className='mt-2 text-gray-600'>{session.summary}</p>
+          <p className='mt-2 text-muted-foreground'>{session.summary}</p>
         </div>
         <Link href={`/campaigns/${params.campaignId}/sessions`}>
           <ButtonVar variant='outline'>Back to Sessions</ButtonVar>
@@ -53,7 +53,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           <CardContent className='pt-6'>
             <div className='flex items-center gap-2'>
               <Clock className='h-4 w-4 text-muted-foreground' />
-              <span className='text-sm text-gray-600'>{session.duration / 60} hours</span>
+              <span className='text-sm text-muted-foreground'>{session.duration / 60} hours</span>
             </div>
           </CardContent>
         </Card>
@@ -61,7 +61,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           <CardContent className='pt-6'>
             <div className='flex items-center gap-2'>
               <MapPin className='h-4 w-4 text-muted-foreground' />
-              <span className='text-sm text-gray-600'>
+              <span className='text-sm text-muted-foreground'>
                 {session.location.isVirtual ? `${session.location.platform}` : session.location.name}
               </span>
             </div>
@@ -71,7 +71,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           <CardContent className='pt-6'>
             <div className='flex items-center gap-2'>
               <Users className='h-4 w-4 text-muted-foreground' />
-              <span className='text-sm text-gray-600'>
+              <span className='text-sm text-muted-foreground'>
                 {session.attendance.filter((a: any) => a.present).length} players
               </span>
             </div>
@@ -81,7 +81,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
           <CardContent className='pt-6'>
             <div className='flex items-center gap-2'>
               <Swords className='h-4 w-4 text-muted-foreground' />
-              <span className='text-sm text-gray-600'>{session.combatEncounters.length} encounters</span>
+              <span className='text-sm text-muted-foreground'>{session.combatEncounters.length} encounters</span>
             </div>
           </CardContent>
         </Card>
@@ -105,7 +105,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
                     <h4 className='font-medium text-foreground'>{encounter.name}</h4>
                     <Badge>{encounter.difficulty}</Badge>
                   </div>
-                  <p className='text-sm text-gray-600'>{encounter.outcome}</p>
+                  <p className='text-sm text-muted-foreground'>{encounter.outcome}</p>
                 </div>
               ))}
             </div>
@@ -130,7 +130,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
                       {npc.isAlive ? 'Alive' : 'Deceased'}
                     </Badge>
                   </div>
-                  <p className='text-sm text-gray-600 mb-2'>{npc.description}</p>
+                  <p className='text-sm text-muted-foreground mb-2'>{npc.description}</p>
                   <p className='text-sm text-muted-foreground'>
                     <MapPin className='h-3 w-3 inline mr-1' />
                     {npc.location}
@@ -176,7 +176,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
             <div className='space-y-4'>
               <div className='p-4 bg-gray-50 rounded-lg'>
                 <h4 className='font-medium text-foreground mb-2'>Public Notes</h4>
-                <p className='text-sm text-gray-600'>{session.notes.public}</p>
+                <p className='text-sm text-muted-foreground'>{session.notes.public}</p>
               </div>
             </div>
           </CardContent>
