@@ -18,7 +18,7 @@ export function QuestBoard({ activeQuests, completedQuests, failedQuests }: Ques
       {/* Active Quests*/}
       <div className='space-y-4'>
         <div className='flex items-center gap-2'>
-          <Clock className='h-5 w-5 text-blue-500' />
+          <Clock className='h-5 w-5 text-primary' />
           <h3 className='text-lg font-semibold'>Active Quests</h3>
           <Badge variant='secondary'>{activeQuests.length}</Badge>
         </div>

@@ -24,7 +24,7 @@ export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) 
 export function LoadingSpinnerPage() {
   return (
     <div className='flex items-center justify-center min-h-[200px]'>
-      <LoadingSpinner size='lg' className='text-blue-500' />
+      <LoadingSpinner size='lg' className='text-primary' />
     </div>
   );
 }
