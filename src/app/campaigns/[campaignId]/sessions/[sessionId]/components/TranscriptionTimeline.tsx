@@ -44,7 +44,7 @@ export const TranscriptionTimeline = ({ transcriptions }: TranscriptionTimelineP
 
                   {/* Metadata */}
                   {transcription.metadata && (
-                    <div className='flex flex-wrap gap-4 text-sm text-gray-500'>
+                    <div className='flex flex-wrap gap-4 text-sm text-muted-foreground'>
                       {transcription.metadata.location && (
                         <div className='flex items-center gap-1'>
                           <MapPin className='h-4 w-4' />
@@ -89,7 +89,7 @@ export const TranscriptionTimeline = ({ transcriptions }: TranscriptionTimelineP
                         Revised
                       </Badge>
                       {transcription.originalContent && (
-                        <span className='text-sm text-gray-500'>Original: {transcription.originalContent}</span>
+                        <span className='text-sm text-muted-foreground'>Original: {transcription.originalContent}</span>
                       )}
                     </div>
                   )}

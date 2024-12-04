@@ -33,7 +33,9 @@ export function CampaignTabs() {
               className={cn(
                 'flex items-center gap-2 py-4 px-1 border-b-2 text-sm font-medium',
                 'transition-colors hover:text-foreground',
-                isActive ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300'
+                isActive
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-muted-foreground hover:border-gray-300'
               )}>
               <Icon className='h-4 w-4' />
               {label}

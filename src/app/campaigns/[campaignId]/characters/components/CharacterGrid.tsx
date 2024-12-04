@@ -45,7 +45,7 @@ export const CharacterGrid = ({ characters, campaignId }: CharacterGridProps) =>
                   {/* Header */}
                   <div>
                     <h3 className='text-2xl font-bold text-foreground'>{character.name}</h3>
-                    <p className='text-sm text-gray-500'>
+                    <p className='text-sm text-muted-foreground'>
                       {character.race} {character.subrace ? `(${character.subrace})` : ''}
                     </p>
                   </div>

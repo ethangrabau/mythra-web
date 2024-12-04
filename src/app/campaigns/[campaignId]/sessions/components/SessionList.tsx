@@ -27,7 +27,7 @@ export function SessionList({ sessions }: SessionListProps) {
                   {/* Header */}
                   <div className='flex items-center justify-between'>
                     <h3 className='text-xl font-semibold text-foreground'>Session {session.sessionNumber}</h3>
-                    <span className='text-sm text-gray-500'>
+                    <span className='text-sm text-muted-foreground'>
                       {formatDistanceToNow(new Date(session.date), { addSuffix: true })}
                     </span>
                   </div>

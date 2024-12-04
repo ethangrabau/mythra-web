@@ -52,7 +52,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
         <Card>
           <CardContent className='pt-6'>
             <div className='flex items-center gap-2'>
-              <Clock className='h-4 w-4 text-gray-500' />
+              <Clock className='h-4 w-4 text-muted-foreground' />
               <span className='text-sm text-gray-600'>{session.duration / 60} hours</span>
             </div>
           </CardContent>
@@ -60,7 +60,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
         <Card>
           <CardContent className='pt-6'>
             <div className='flex items-center gap-2'>
-              <MapPin className='h-4 w-4 text-gray-500' />
+              <MapPin className='h-4 w-4 text-muted-foreground' />
               <span className='text-sm text-gray-600'>
                 {session.location.isVirtual ? `${session.location.platform}` : session.location.name}
               </span>
@@ -70,7 +70,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
         <Card>
           <CardContent className='pt-6'>
             <div className='flex items-center gap-2'>
-              <Users className='h-4 w-4 text-gray-500' />
+              <Users className='h-4 w-4 text-muted-foreground' />
               <span className='text-sm text-gray-600'>
                 {session.attendance.filter((a: any) => a.present).length} players
               </span>
@@ -80,7 +80,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
         <Card>
           <CardContent className='pt-6'>
             <div className='flex items-center gap-2'>
-              <Swords className='h-4 w-4 text-gray-500' />
+              <Swords className='h-4 w-4 text-muted-foreground' />
               <span className='text-sm text-gray-600'>{session.combatEncounters.length} encounters</span>
             </div>
           </CardContent>
@@ -131,7 +131,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
                     </Badge>
                   </div>
                   <p className='text-sm text-gray-600 mb-2'>{npc.description}</p>
-                  <p className='text-sm text-gray-500'>
+                  <p className='text-sm text-muted-foreground'>
                     <MapPin className='h-3 w-3 inline mr-1' />
                     {npc.location}
                   </p>
@@ -155,7 +155,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
                 <div key={index} className='p-4 bg-gray-50 rounded-lg flex justify-between items-center'>
                   <div>
                     <h4 className='font-medium text-foreground'>{loot.item}</h4>
-                    <p className='text-sm text-gray-500'>Quantity: {loot.quantity}</p>
+                    <p className='text-sm text-muted-foreground'>Quantity: {loot.quantity}</p>
                   </div>
                   {loot.value && <Badge variant='outline'>{loot.value} gp</Badge>}
                 </div>

@@ -95,7 +95,7 @@ function QuestCard({ quest, status }: QuestCardProps) {
         <p className='text-sm text-gray-600'>{quest.description}</p>
 
         {/* Quest Giver */}
-        <div className='flex items-center gap-2 text-sm text-gray-500'>
+        <div className='flex items-center gap-2 text-sm text-muted-foreground'>
           <span className='font-medium'>From:</span>
           <span>{quest.giver.name}</span>
           <span className='text-gray-400'>•</span>
@@ -110,7 +110,7 @@ function QuestCard({ quest, status }: QuestCardProps) {
               {quest.objectives.map((objective, index) => (
                 <li key={index} className='flex items-center gap-2 text-sm'>
                   <div className={`w-1.5 h-1.5 rounded-full ${objective.completed ? 'bg-green-500' : 'bg-gray-300'}`} />
-                  <span className={objective.completed ? 'line-through text-gray-500' : ''}>
+                  <span className={objective.completed ? 'line-through text-muted-foreground' : ''}>
                     {objective.description}
                   </span>
                 </li>

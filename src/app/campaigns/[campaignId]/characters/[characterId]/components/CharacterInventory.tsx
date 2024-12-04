@@ -18,7 +18,7 @@ export function CharacterInventory({ inventory }: CharacterInventoryProps) {
         <div key={index} className='flex items-center justify-between p-2 rounded-lg hover:bg-gray-50'>
           <div className='flex items-center gap-3'>
             <span className='font-medium text-foreground'>{item.item}</span>
-            {item.quantity > 1 && <span className='text-sm text-gray-500'>×{item.quantity}</span>}
+            {item.quantity > 1 && <span className='text-sm text-muted-foreground'>×{item.quantity}</span>}
           </div>
           <div className='flex gap-2'>
             {item.equipped && <Badge variant='secondary'>Equipped</Badge>}
@@ -26,7 +26,7 @@ export function CharacterInventory({ inventory }: CharacterInventoryProps) {
           </div>
         </div>
       ))}
-      {inventory.length === 0 && <p className='text-gray-500 text-sm'>No items in inventory.</p>}
+      {inventory.length === 0 && <p className='text-muted-foreground text-sm'>No items in inventory.</p>}
     </div>
   );
 }

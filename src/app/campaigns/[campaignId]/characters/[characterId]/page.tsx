@@ -75,11 +75,11 @@ export default async function CharacterPage({ params: paramsPromise }: Character
               <CardContent className='p-6'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm text-gray-500'>Experience</p>
+                    <p className='text-sm text-muted-foreground'>Experience</p>
                     <p className='text-2xl font-bold'>{character.experience.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className='text-sm text-gray-500'>Total Level</p>
+                    <p className='text-sm text-muted-foreground'>Total Level</p>
                     <p className='text-2xl font-bold text-center'>
                       {character.class.reduce((sum: number, cls: any) => sum + cls.level, 0)}
                     </p>
