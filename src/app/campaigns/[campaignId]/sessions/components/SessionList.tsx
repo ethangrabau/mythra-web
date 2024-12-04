@@ -91,7 +91,7 @@ export function SessionList({ sessions }: SessionListProps) {
                           {session.importantLocations.map(location => (
                             <span
                               key={location}
-                              className='px-2 py-1 bg-gray-100 rounded-full text-xs text-muted-foreground'>
+                              className='px-2 py-1 bg-secondary/80 rounded-full text-xs text-muted-foreground'>
                               {location}
                             </span>
                           ))}
