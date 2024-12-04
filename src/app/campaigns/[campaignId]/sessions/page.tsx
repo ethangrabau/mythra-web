@@ -20,7 +20,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
   );
 
   return (
-    <div className='p-6'>
+    <div className='p-6 bg-background'>
       <div className='mb-6 flex items-center justify-between'>
         <div>
           <h2 className='text-2xl font-bold text-foreground'>{campaign.name} Sessions</h2>

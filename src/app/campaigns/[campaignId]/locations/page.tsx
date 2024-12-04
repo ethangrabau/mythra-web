@@ -17,7 +17,7 @@ export default async function LocationsPage({ params: paramsPromise }: Locations
   if (!locations) return notFound();
 
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-6 space-y-6 bg-background'>
       <div>
         <h2 className='text-2xl font-bold text-foreground'>Locations</h2>
       </div>
