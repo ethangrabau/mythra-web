@@ -1,6 +1,7 @@
 import { D20Icon } from '@/components/icons/D20Icon';
 import { Badge } from '@/components/ui/badge';
-import { ButtonVar } from '@/components/ui/buttonvar';
+// import { ButtonVar } from '@/components/ui/buttonvar';
+import { Button } from '@/components/ui/button';
 import { CalendarDays, Users } from 'lucide-react';
 
 type CampaignHeaderProps = {
@@ -63,8 +64,8 @@ export function CampaignHeader({ campaign }: CampaignHeaderProps) {
         </div>
 
         <div className='flex gap-3'>
-          <ButtonVar variant='outline'>Edit Campaign</ButtonVar>
-          <ButtonVar>Schedule Session</ButtonVar>
+          <Button variant='outline'>Edit Campaign</Button>
+          <Button>Schedule Session</Button>
         </div>
       </div>
     </div>
