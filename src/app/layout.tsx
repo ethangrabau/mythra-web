@@ -1,19 +1,17 @@
 // src/app/layout.tsx
 import './globals.css';
 import LayoutClient from '@/components/layout/LayoutClient';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import type { ReactNode } from 'react';
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-50">
-        <LayoutClient>
-          {children}
-        </LayoutClient>
+    <html lang='en' suppressHydrationWarning>
+      {/* <body className='bg-gray-50'> */}
+      <body suppressHydrationWarning>
+        <ThemeProvider attribute='class' defaultTheme='system' enableSystem disableTransitionOnChange>
+          <LayoutClient>{children}</LayoutClient>
+        </ThemeProvider>
       </body>
     </html>
   );

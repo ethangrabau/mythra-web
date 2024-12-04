@@ -50,12 +50,12 @@ export default async function CampaignPage({ params: paramsPromise }: CampaignPa
           <Card key={label}>
             <CardContent className='p-6'>
               <div className='flex items-center space-x-4'>
-                <div className='p-2 bg-blue-50 rounded-lg'>
-                  <Icon className='h-6 w-6 text-blue-500' />
+                <div className='p-2 bg-primary/10 rounded-lg'>
+                  <Icon className='h-6 w-6 text-primary' />
                 </div>
                 <div>
-                  <p className='text-sm font-medium text-gray-500'>{label}</p>
-                  <h3 className='text-2xl font-bold text-gray-900'>{value}</h3>
+                  <p className='text-sm font-medium text-muted-foreground'>{label}</p>
+                  <h3 className='text-2xl font-bold text-foreground'>{value}</h3>
                 </div>
               </div>
             </CardContent>

@@ -35,7 +35,7 @@ export function CampaignHeader({ campaign }: CampaignHeaderProps) {
   };
 
   return (
-    <div className='bg-white rounded-lg shadow p-2'>
+    <div className='bg-background rounded-lg shadow p-2 text-foreground'>
       <div className='flex justify-between items-start'>
         <div>
           <div className='flex items-center gap-4'>

@@ -1,6 +1,7 @@
 // src/components/layout/Header.tsx
 'use client';
 import { Mic, Brain, Book, Plus, StopCircle } from 'lucide-react';
+import { ThemeToggle } from '../theme/ThemeToggle';
 
 interface HeaderProps {
   isRecording?: boolean;
@@ -39,6 +40,7 @@ export default function Header({ isRecording, onNewSession, onStopRecording }: H
               <Book className='w-4 h-4' />
               Campaigns
             </a>
+            <ThemeToggle />
           </nav>
         </div>
 
