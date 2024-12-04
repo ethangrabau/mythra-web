@@ -27,7 +27,7 @@ export default async function SessionPage({ params: paramsPromise }: SessionPage
   if (!session) return notFound();
 
   return (
-    <div className='max-w-5xl mx-auto p-6 space-y-8'>
+    <div className='p-6 space-y-8 bg-background'>
       {/* Header */}
       <div className='flex justify-between items-start'>
         <div>
