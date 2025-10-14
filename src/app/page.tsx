@@ -1,24 +1,41 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PlayCircle, Images } from 'lucide-react';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
+import CampaignSelector from '@/components/CampaignSelector';
 
 export default function Home() {
   const router = useRouter();
   const { startSession } = useAudioRecorder();
+  const [showCampaignSelector, setShowCampaignSelector] = useState(false);
 
-  const handleStartSession = async () => {
+  const handleSelectCampaign = async (campaignId: string, campaignName: string) => {
     try {
-      const sessionId = await startSession();
-      router.push(`/session/${sessionId}`);
+      // Start session with campaign ID
+      const sessionId = await startSession(campaignId);
+      setShowCampaignSelector(false);
+      router.push(`/session/${sessionId}?campaign=${campaignId}`);
     } catch (err) {
       console.error('Failed to start session:', err);
     }
   };
 
+  const handleStartSession = () => {
+    // Show campaign selector instead of directly starting
+    setShowCampaignSelector(true);
+  };
+
   return (
     <main className="flex-1 p-6">
+      {showCampaignSelector && (
+        <CampaignSelector 
+          onSelectCampaign={handleSelectCampaign}
+          onClose={() => setShowCampaignSelector(false)}
+        />
+      )}
+      
       <div className="max-w-7xl mx-auto space-y-8">
         <div>
           <h2 className="text-2xl font-obra text-gray-100">Welcome to Mythra</h2>

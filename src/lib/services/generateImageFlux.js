@@ -8,7 +8,7 @@ import { normalizeSessionId } from '../utils/session.js';
 const rootDir = process.cwd();
 const API_KEY = process.env.BFL_API_KEY;
 
-export const generateImageFlux = async (prompt, sessionId, width = 1024, height = 768) => {
+export const generateImageFlux = async (prompt, sessionId, campaignId = null, width = 1024, height = 768) => {
 
   const normalizedSessionId = normalizeSessionId(sessionId);
   console.log('Image generation session ID:', {
@@ -29,7 +29,10 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
     });
 
     // Ensure the images directory exists
-    const dirPath = path.join(rootDir, 'generated_images');
+    const dirPath = campaignId 
+      ? path.join(rootDir, 'generated_images', campaignId)
+      : path.join(rootDir, 'generated_images');
+    
     console.log('Checking images directory:', dirPath);
     if (!fs.existsSync(dirPath)) {
       console.log('Creating images directory...');
@@ -112,10 +115,15 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
       
       await new Promise((resolve) => {
         ws.onopen = () => {
+          const relativePath = campaignId 
+            ? `/api/images/${campaignId}/${filename}`
+            : `/api/images/${filename}`;
+          
           const message = {
             type: 'newImage',
-            sessionId: normalizedSessionId, // Use normalized ID here
-            imagePath: `/api/images/${filename}`
+            sessionId: normalizedSessionId,
+            imagePath: relativePath,
+            campaignId: campaignId
           };
           console.log('Sending WebSocket message:', message);
           ws.send(JSON.stringify(message));
@@ -128,7 +136,10 @@ export const generateImageFlux = async (prompt, sessionId, width = 1024, height 
       console.error('Error notifying WebSocket server:', wsError);
     }
 
-    return `/api/images/${filename}`;
+    const relativePath = campaignId 
+      ? `/api/images/${campaignId}/${filename}`
+      : `/api/images/${filename}`;
+    return relativePath;
   } catch (error) {
     console.error('Error during image generation:', error);
     console.error('Stack trace:', error.stack);

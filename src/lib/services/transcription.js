@@ -58,6 +58,41 @@ export default class TranscriptionService extends EventEmitter {
       const result = await response.json();
       console.log('TranscriptionService: Transcription successful:', result);
 
+      // Filter out common Whisper hallucinations when there's no real audio
+      const hallucinations = [
+        'thank you for watching',
+        'thanks for watching', 
+        'bye bye',
+        'subscribe to my channel',
+        'like and subscribe',
+        'see you next time',
+        'thanks for listening',
+        'thank you',
+        'have a good night',
+        'good night',
+        'tsk'
+      ];
+      
+      const textLower = result.text?.toLowerCase().trim();
+      
+      // Check for exact matches or repetitive patterns
+      const isHallucination = hallucinations.some(h => 
+        textLower === h || 
+        textLower.includes(h) ||
+        textLower.startsWith(h) ||
+        textLower.endsWith(h)
+      ) || 
+      // Check for repetitive sounds like "tsk tsk tsk"
+      /^(tsk\s*)+$/i.test(textLower) ||
+      // Single word common hallucinations
+      (result.text.length < 20 && /^(thank you\.?|thanks\.?|bye\.?|goodbye\.?)$/i.test(textLower));
+      
+      // If it's a short phrase that's a hallucination, ignore it
+      if (isHallucination && result.text.length < 100) {
+        console.log('TranscriptionService: Filtered out hallucination:', result.text);
+        result.text = ''; // Empty transcription
+      }
+
       const transcriptionData = {
         text: result.text,
         timestamp: Date.now(),

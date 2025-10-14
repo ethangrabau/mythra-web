@@ -11,7 +11,7 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 export class RecordingService {
     constructor() {
       this.sessions = new Map();
-      this.CHUNK_DURATION = 10;
+      this.CHUNK_DURATION = 15; // Changed from 10 to 15 seconds for less frequent transcriptions
       this.AUDIO_DIR = PATHS.AUDIO_DIR;
       
       console.log('RecordingService initialized with AUDIO_DIR:', this.AUDIO_DIR);

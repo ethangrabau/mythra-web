@@ -46,7 +46,9 @@ export type WebSocketMessageType =
   | 'recording_complete'
   | 'ack'
   | 'transcription'
-  | 'session_ended';
+  | 'session_ended'
+  | 'text_input'
+  | 'session_reset';
 
 export interface WebSocketMessage {
   type: WebSocketMessageType; // Type of WebSocket message
@@ -59,12 +61,13 @@ export interface WebSocketPayload {
   message?: string; // Optional error or status message
   status?: SessionStatus; // Current session status
   sessionId?: string; // Session ID for context
-  action?: 'start' | 'stop' | 'end' | 'startRecording'; // Action being requested
+  action?: 'start' | 'stop' | 'end' | 'startRecording' | 'reset'; // Action being requested
   chunkId?: number; // ID of the audio chunk
   duration?: number; // Duration of the audio chunk
   size?: number; // Size of the audio chunk in bytes
   transcription?: TranscriptionData; // Transcription data (if available)
   path?: string; // Path to a recording file
+  text?: string; // Text input for manual transcription
   [key: string]: unknown; // Allow additional fields with unknown type
 }
 

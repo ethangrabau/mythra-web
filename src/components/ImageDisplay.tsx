@@ -34,17 +34,34 @@ export default function ImageDisplay({
   // Add keyboard navigation
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
-      if (isRecording) return;
+      console.log('ImageDisplay: Key pressed:', event.key, {
+        isRecording,
+        hasNextImage,
+        hasPreviousImage,
+        currentImageIndex,
+        totalImages
+      });
+      
+      if (isRecording) {
+        console.log('ImageDisplay: Navigation disabled during recording');
+        return;
+      }
 
       switch (event.key) {
         case 'ArrowLeft':
           if (hasPreviousImage) {
+            console.log('ImageDisplay: Going to previous image');
             goToPreviousImage();
+          } else {
+            console.log('ImageDisplay: No previous image available');
           }
           break;
         case 'ArrowRight':
           if (hasNextImage) {
+            console.log('ImageDisplay: Going to next image');
             goToNextImage();
+          } else {
+            console.log('ImageDisplay: No next image available');
           }
           break;
         case 'Enter':
@@ -118,7 +135,7 @@ export default function ImageDisplay({
           isFullscreen ? "scale-100" : "scale-95 hover:scale-100"
         }`}>
           <Image
-            src={`http://localhost:3001${currentImage}`}
+            src={`http://localhost:3002${currentImage}`}
             alt="Generated scene"
             fill
             className="object-contain p-4"

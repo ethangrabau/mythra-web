@@ -53,58 +53,49 @@ export function useImageNavigation(
     const fetchImages = async () => {
       try {
         setLoading(true);
-        const normalizedId = normalizeSessionId(sessionId);
         
-        // First try to get the latest image
-        const latestResponse = await fetch(`http://localhost:3001/api/images/latest/${sessionId}`);
+        // Try to get all campaign images
+        const cacheBuster = `?t=${Date.now()}`;
+        const campaignResponse = await fetch(`http://localhost:3002/api/campaign-images/${sessionId}${cacheBuster}`);
         
-        if (latestResponse.ok) {
-          const latestData = await latestResponse.json() as ImageApiResponse;
+        if (campaignResponse.ok) {
+          const campaignData = await campaignResponse.json() as { images: string[] };
           
-          if (latestData.imagePath) {
-            setState(prev => {
-              if (prev.images.length > 0) {
-                if (!prev.images.includes(latestData.imagePath!)) {
-                  const newImages = [...prev.images, latestData.imagePath!];
-                  return {
-                    images: newImages,
-                    totalImages: newImages.length,
-                    currentImageIndex: newImages.length - 1
-                  };
-                }
-                return prev;
-              }
-              return {
-                images: [latestData.imagePath!],
-                totalImages: 1,
-                currentImageIndex: 0
+          if (campaignData.images && campaignData.images.length > 0) {
+            // Sort images by timestamp (newest last)
+            const sortedImages = campaignData.images.sort((a, b) => {
+              const getTimestamp = (path: string) => {
+                const match = path.match(/-(\d+)\.png$/);
+                return match ? parseInt(match[1]) : 0;
               };
+              return getTimestamp(a) - getTimestamp(b);
             });
-          }
-        } else {
-          const allResponse = await fetch('http://localhost:3001/api/images');
-          
-          if (allResponse.ok) {
-            const data = await allResponse.json() as ImageApiResponse;
-            if (data.images && data.images.length > 0) {
-              const sessionImages = data.images
-                .filter(img => img.includes(normalizedId))
-                .sort((a, b) => {
-                  const getTimestamp = (filename: string) => {
-                    const match = filename.match(/-(\d+)\.png$/);
-                    return match ? parseInt(match[1]) : 0;
-                  };
-                  return getTimestamp(a) - getTimestamp(b);
-                });
-
-              if (sessionImages.length > 0) {
-                setState({
-                  images: sessionImages,
-                  totalImages: sessionImages.length,
-                  currentImageIndex: sessionImages.length - 1
-                });
+            
+            // Add cache-busting to all image URLs
+            const imagesWithCacheBuster = sortedImages.map(img => `${img}?t=${Date.now()}`);
+            
+            setState(prev => {
+              // Check if there are new images
+              const hasNewImages = imagesWithCacheBuster.length > prev.images.length;
+              
+              if (hasNewImages) {
+                console.log('New images detected! Jumping to latest image');
+                // Jump to the newest image when new images are added
+                return {
+                  images: imagesWithCacheBuster,
+                  totalImages: imagesWithCacheBuster.length,
+                  currentImageIndex: imagesWithCacheBuster.length - 1  // Show newest image
+                };
+              } else if (imagesWithCacheBuster.length !== prev.images.length) {
+                // Images changed but not new ones (maybe some were deleted)
+                return {
+                  images: imagesWithCacheBuster,
+                  totalImages: imagesWithCacheBuster.length,
+                  currentImageIndex: Math.min(prev.currentImageIndex, imagesWithCacheBuster.length - 1)
+                };
               }
-            }
+              return prev;
+            });
           }
         }
       } catch (error) {
@@ -115,15 +106,19 @@ export function useImageNavigation(
     };
 
     fetchImages();
-    const interval = setInterval(fetchImages, 3000);
+    const interval = setInterval(fetchImages, 2000); // Reduced from 3000ms to 2000ms for faster updates
     return () => clearInterval(interval);
   }, [sessionId]);
 
   const goToNextImage = () => {
-    console.log('Navigating to next image from:', state.currentImageIndex);
+    console.log('goToNextImage called. Current state:', {
+      currentIndex: state.currentImageIndex,
+      totalImages: state.images.length,
+      hasNext: state.currentImageIndex < state.images.length - 1
+    });
     setState(prev => {
       const newIndex = Math.min(prev.currentImageIndex + 1, prev.images.length - 1);
-      console.log('New image index:', newIndex, 'URL:', prev.images[newIndex]);
+      console.log('Setting new image index:', newIndex, 'of', prev.images.length);
       return {
         ...prev,
         currentImageIndex: newIndex
@@ -132,10 +127,14 @@ export function useImageNavigation(
   };
   
   const goToPreviousImage = () => {
-    console.log('Navigating to previous image from:', state.currentImageIndex);
+    console.log('goToPreviousImage called. Current state:', {
+      currentIndex: state.currentImageIndex,
+      totalImages: state.images.length,
+      hasPrev: state.currentImageIndex > 0
+    });
     setState(prev => {
       const newIndex = Math.max(prev.currentImageIndex - 1, 0);
-      console.log('New image index:', newIndex, 'URL:', prev.images[newIndex]);
+      console.log('Setting new image index:', newIndex, 'of', prev.images.length);
       return {
         ...prev,
         currentImageIndex: newIndex

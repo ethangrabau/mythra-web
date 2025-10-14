@@ -186,6 +186,13 @@ export function useAudioRecorder(): AudioRecorderHook {
             setSessionData(null);
             break;
           }
+          
+          case 'newImage': {
+            console.log('Debug - Received newImage notification:', message);
+            // The ImageDisplay component will pick this up via its polling
+            // Just log it for now to confirm reception
+            break;
+          }
         }
       } catch (err) {
         console.error('Error processing message:', err);
@@ -202,7 +209,7 @@ export function useAudioRecorder(): AudioRecorderHook {
     };
   }, [connectWebSocket]);
 
-  const startSession = useCallback(async (providedSessionId?: string) => {
+  const startSession = useCallback(async (campaignId?: string, providedSessionId?: string) => {
     try {
       if (!isConnected) {
         throw new Error('WebSocket is not connected');
@@ -213,7 +220,11 @@ export function useAudioRecorder(): AudioRecorderHook {
   
       const message = {
         type: 'command',
-        payload: { action: 'start', sessionId: newSessionId },
+        payload: { 
+          action: 'start', 
+          sessionId: newSessionId,
+          campaignId: campaignId || null
+        },
         sessionId: newSessionId,
       };
   
@@ -249,13 +260,9 @@ export function useAudioRecorder(): AudioRecorderHook {
   
       let currentSessionId = sessionData?.sessionId;
   
-      // If no session is active, start a new session
-      if (!sessionActive) {
-        currentSessionId = await startSession();
-      }
-  
-      if (!currentSessionId) {
-        throw new Error('Invalid session state');
+      // If no session is active, throw error - session should already exist
+      if (!sessionActive || !currentSessionId) {
+        throw new Error('No active session. Please ensure a session is started first.');
       }
   
       // Prepare the WebSocket message
@@ -278,7 +285,7 @@ export function useAudioRecorder(): AudioRecorderHook {
       console.warn('Error starting recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, [isConnected, isRecording, sessionActive, sessionData, startSession, sendWebSocketMessage]);
+  }, [isConnected, isRecording, sessionActive, sessionData, sendWebSocketMessage]);
   
   const stopRecording = useCallback(() => {
     try {

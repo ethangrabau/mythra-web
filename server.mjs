@@ -2,7 +2,7 @@
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { mkdirSync } from 'fs';
+import { mkdirSync, existsSync } from 'fs';
 import fs from 'fs/promises';
 import express from 'express';
 import cors from 'cors';
@@ -10,6 +10,7 @@ import { fileWatcher } from './file-watcher.js';
 import { normalizeSessionId } from './src/lib/utils/session.js';
 import { AudioSession } from './src/lib/services/audioSession.js';
 import TranscriptionService from './src/lib/services/transcription.js';
+import CampaignManager from './src/lib/services/campaignManager.js';
 
 // Get the current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -73,6 +74,57 @@ server.on('connection', (socket) => {
       console.log('Server: Received message:', message);
   
       switch (message.type) {
+        case 'text_input':
+          console.log('Server: Processing text input:', message.payload.text);
+          // Process text input as a transcription
+          
+          // Try to recover session if currentSession is null
+          if (!currentSession && message.sessionId) {
+            currentSession = activeSessions.get(message.sessionId);
+            console.log('Server: Recovered session from activeSessions:', currentSession?.sessionId);
+          }
+          
+          if (currentSession) {
+            // Create a mock transcription object
+            const textTranscription = {
+              text: message.payload.text,
+              timestamp: Date.now(),
+              sessionId: currentSession.sessionId,
+              isManualInput: true
+            };
+            
+            // Send it back as a transcription
+            socket.send(JSON.stringify({
+              type: 'transcription',
+              payload: { transcription: textTranscription },
+              sessionId: currentSession.sessionId,
+              timestamp: Date.now()
+            }));
+            
+            // Save to transcription file for processing
+            const transcriptionPath = join(METADATA_DIR, `${currentSession.sessionId}-transcription.json`);
+            let transcriptionData;
+            
+            try {
+              const existingData = await fs.readFile(transcriptionPath, 'utf-8');
+              transcriptionData = JSON.parse(existingData);
+            } catch {
+              transcriptionData = {
+                sessionId: currentSession.sessionId,
+                lastUpdated: Date.now(),
+                transcriptions: []
+              };
+            }
+            
+            transcriptionData.transcriptions.push(textTranscription);
+            transcriptionData.lastUpdated = Date.now();
+            await fs.writeFile(transcriptionPath, JSON.stringify(transcriptionData, null, 2));
+            
+            console.log('Server: Text input processed and saved as transcription');
+          } else {
+            console.log('Server: No active session for text input. Please start a session first.');
+          }
+          break;
         case 'session_reset':
           console.log('Server: Processing session reset command...');
           fileWatcher.resetMemory();
@@ -94,7 +146,13 @@ server.on('connection', (socket) => {
     }
 
     const sessionId = message.payload.sessionId || `session-${Date.now()}`;
-    console.log('Server: Starting new session:', sessionId);
+    const campaignId = message.payload.campaignId || null;
+    console.log('Server: Starting new session:', sessionId, 'for campaign:', campaignId);
+
+    // Set active campaign in file watcher if provided
+    if (campaignId) {
+      fileWatcher.setActiveCampaign(campaignId);
+    }
 
     // Create session directory
     const sessionDir = join(AUDIO_DIR, sessionId);
@@ -102,6 +160,7 @@ server.on('connection', (socket) => {
 
     // Initialize new session and add to active sessions
     currentSession = new AudioSession(sessionId, transcriptionService);
+    currentSession.campaignId = campaignId; // Store campaign ID with session
     currentSession.setSocket(socket);
     activeSessions.set(sessionId, currentSession);
     console.log('Server: Session added to active sessions. Current count:', activeSessions.size);
@@ -111,8 +170,9 @@ server.on('connection', (socket) => {
     socket.send(
       JSON.stringify({
         type: 'status',
-        payload: { status: 'ready', sessionId },
+        payload: { status: 'ready', sessionId, campaignId },
         sessionId,
+        campaignId,
         timestamp: Date.now(),
       })
     );
@@ -200,6 +260,21 @@ server.on('connection', (socket) => {
     );
   }
   break;
+        
+        case 'newImage':
+          // Forward the newImage message to all connected clients
+          console.log('Server: Forwarding newImage message');
+          server.clients.forEach((client) => {
+            if (client.readyState === 1) { // 1 is OPEN state in ws library
+              client.send(JSON.stringify({
+                type: 'newImage',
+                payload: message.payload,
+                timestamp: Date.now()
+              }));
+            }
+          });
+          break;
+          
         default:
           console.warn('Unknown message type:', message.type);
           break;
@@ -252,38 +327,167 @@ setInterval(() => {
 }, 30000);
 
 const app = express();
+const campaignManager = new CampaignManager();
 
 // Move middleware setup before routes
 app.use(cors());
-app.use('/api/images', express.static(IMAGES_DIR));
+app.use(express.json());
+
+// Campaign API endpoints
+app.get('/api/campaigns', (req, res) => {
+  try {
+    const campaigns = campaignManager.listCampaigns();
+    res.json({ campaigns });
+  } catch (error) {
+    console.error('Error listing campaigns:', error);
+    res.status(500).json({ error: 'Failed to list campaigns' });
+  }
+});
+
+app.post('/api/campaigns', (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const result = campaignManager.createCampaign(name, description);
+    
+    if (result.error) {
+      res.status(400).json(result);
+    } else {
+      res.json(result);
+    }
+  } catch (error) {
+    console.error('Error creating campaign:', error);
+    res.status(500).json({ error: 'Failed to create campaign' });
+  }
+});
+
+app.delete('/api/campaigns/:id', (req, res) => {
+  try {
+    const success = campaignManager.deleteCampaign(req.params.id);
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Campaign not found' });
+    }
+  } catch (error) {
+    console.error('Error deleting campaign:', error);
+    res.status(500).json({ error: 'Failed to delete campaign' });
+  }
+});
+
+app.get('/api/campaigns/:id/memory', (req, res) => {
+  try {
+    const memory = campaignManager.loadCampaignMemory(req.params.id);
+    res.json({ memory });
+  } catch (error) {
+    console.error('Error loading campaign memory:', error);
+    res.status(500).json({ error: 'Failed to load campaign memory' });
+  }
+});
+
+// Add route to list all images (before static middleware)
+app.get('/api/images', async (req, res) => {
+  try {
+    const { campaignId } = req.query;
+    const dir = campaignId 
+      ? join(IMAGES_DIR, campaignId)
+      : IMAGES_DIR;
+      
+    const files = await fs.readdir(dir).catch(() => []);
+    const imageFiles = files.filter(file => 
+      file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg')
+    );
+    const basePath = campaignId ? `/api/images/${campaignId}` : '/api/images';
+    res.json({ images: imageFiles.map(file => `${basePath}/${file}`) });
+  } catch (error) {
+    console.error('Error listing images:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all images for a campaign/session
+app.get('/api/campaign-images/:campaignId', async (req, res) => {
+  try {
+    // Use the campaign ID as-is for the directory path
+    const campaignId = req.params.campaignId;
+    const campaignDir = join(IMAGES_DIR, campaignId);
+    
+    if (!existsSync(campaignDir)) {
+      return res.json({ images: [] });
+    }
+    
+    const files = await fs.readdir(campaignDir);
+    const images = files
+      .filter(file => file.endsWith('.png'))
+      .sort((a, b) => {
+        // Extract timestamp from the filename (last number before .png)
+        const aMatch = a.match(/(\d+)\.png$/);
+        const bMatch = b.match(/(\d+)\.png$/);
+        const aTime = aMatch ? parseInt(aMatch[1]) : 0;
+        const bTime = bMatch ? parseInt(bMatch[1]) : 0;
+        return aTime - bTime; // Oldest first (chronological order)
+      })
+      .map(file => `/api/images/${campaignId}/${file}`);
+    
+    res.json({ images });
+  } catch (error) {
+    console.error('Error getting campaign images:', error);
+    res.status(500).json({ error: 'Failed to get images' });
+  }
+});
 
 app.get('/api/images/latest/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    console.log('Image request:', {
-      requestedId: sessionId,
-      normalizedId: normalizeSessionId(sessionId)
-    });
+    console.log('Image request for session:', sessionId);
     
     const files = await fs.readdir(IMAGES_DIR);
     const normalizedRequestId = normalizeSessionId(sessionId);
     
+    // Properly filter files that belong to this session
     const sessionImages = files.filter(file => {
-      const normalizedFileId = normalizeSessionId(file.split('-')[0] + '-' + file.split('-')[1]);
+      // Extract session ID from filename (format: session-XXX-XXX-timestamp.png)
+      if (!file.endsWith('.png')) return false;
+      
+      // Use the normalizeSessionId function to compare properly
+      const fileSessionPart = file.substring(0, file.lastIndexOf('-'));
+      const normalizedFileId = normalizeSessionId(fileSessionPart);
+      
+      console.log('Comparing:', {
+        file,
+        fileSessionPart,
+        normalizedFileId,
+        normalizedRequestId,
+        matches: normalizedFileId === normalizedRequestId
+      });
+      
       return normalizedFileId === normalizedRequestId;
     });
 
-    console.log('Image matching:', {
-      normalizedRequestId,
-      foundImages: sessionImages
-    });
+    console.log('Found images for session:', sessionImages);
 
     if (sessionImages.length > 0) {
-      // Sort by timestamp to get the latest
-      const latestImage = sessionImages.sort().reverse()[0];
+      // Sort by timestamp (extract from filename)
+      const sortedImages = sessionImages.sort((a, b) => {
+        const getTimestamp = (filename) => {
+          const match = filename.match(/-(\d+)\.png$/);
+          return match ? parseInt(match[1]) : 0;
+        };
+        return getTimestamp(b) - getTimestamp(a); // Sort descending (newest first)
+      });
+      
+      const latestImage = sortedImages[0];
+      
+      // Add cache control headers
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
       res.json({ imagePath: `/api/images/${latestImage}` });
     } else {
-      res.status(404).json({ error: 'No images found for this session' });
+      // Return 204 No Content instead of 404 so UI keeps polling
+      res.status(204).end();
     }
   } catch (error) {
     console.error('Error in image endpoint:', error);
@@ -291,10 +495,25 @@ app.get('/api/images/latest/:sessionId', async (req, res) => {
   }
 });
 
+// Static file serving (after specific routes)
+app.use('/api/images', express.static(IMAGES_DIR));
+
 // Start Express server
-const PORT = 3001;
+const PORT = 3002;
 app.listen(PORT, () => {
   console.log(`Express API running on http://localhost:${PORT}`);
-  // Start the file watcher after server is ready
-  fileWatcher.start();
+  // Start the file watcher after server is ready with image callback
+  fileWatcher.start((imageData) => {
+    // Broadcast new image to all connected clients
+    console.log('Broadcasting new image:', imageData);
+    server.clients.forEach((client) => {
+      if (client.readyState === 1) { // 1 is OPEN state
+        client.send(JSON.stringify({
+          type: 'newImage',
+          payload: imageData,
+          timestamp: Date.now()
+        }));
+      }
+    });
+  });
 });

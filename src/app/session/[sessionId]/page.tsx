@@ -35,6 +35,7 @@ const SessionPage = () => {
   const [isPrinting, setIsPrinting] = useState(false); // Add this here
   const [progress, setProgress] = useState(0); // Progress bar state
   const [showWelcome, setShowWelcome] = useState(true);
+  const [textInput, setTextInput] = useState(''); // Add text input state
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const IDLE_TIMEOUT = 90000; // 90 seconds in milliseconds
 
@@ -134,6 +135,25 @@ const SessionPage = () => {
     }
   }, [currentImageUrl]);  
 
+  const handleSendText = useCallback(() => {
+    if (!textInput.trim() || !isConnected || !sessionData?.sessionId) return;
+    
+    // Send text as if it were a transcription
+    const message: WebSocketMessage = {
+      type: 'text_input',
+      payload: {
+        text: textInput.trim(),
+        sessionId: sessionData.sessionId
+      },
+      sessionId: sessionData.sessionId,
+      timestamp: Date.now()
+    };
+    
+    sendWebSocketMessage(message);
+    setTextInput(''); // Clear input after sending
+    console.log('Sent text input:', textInput);
+  }, [textInput, isConnected, sessionData, sendWebSocketMessage]);
+
   const toggleRecording = useCallback(() => {
     if (isRecording) {
       stopRecording();
@@ -169,7 +189,9 @@ const SessionPage = () => {
   useEffect(() => {
     if (sessionIdFromUrl && !sessionData) {
       console.log('Connecting to existing session:', sessionIdFromUrl);
-      startSession(sessionIdFromUrl).catch((err) => {
+      // Pass the sessionIdFromUrl as both campaignId and sessionId
+      // This ensures we continue using the same campaign folder
+      startSession(sessionIdFromUrl, sessionIdFromUrl).catch((err) => {
         console.warn('Error connecting to session:', err);
 
         if (err.message.includes('WebSocket is not connected')) {
@@ -304,6 +326,36 @@ const SessionPage = () => {
                 {isPrinting ? 'Printing...' : 'Print Image'}
               </button>
             </div>
+
+            {/* Text Input for Testing */}
+            {isRecording && (
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400 font-obra">
+                  Text Input (for testing when you can't speak):
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSendText();
+                      }
+                    }}
+                    placeholder="Type your narrative here..."
+                    className="flex-1 p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={handleSendText}
+                    disabled={!textInput.trim()}
+                    className="px-6 py-3 rounded-lg bg-blue-700 text-white hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            )}
   
             <TranscriptionViewer
               sessionId={sessionData?.sessionId || ''}
@@ -321,7 +373,7 @@ const SessionPage = () => {
           )}
         >
           <ImageDisplay
-            sessionId={sessionData?.sessionId || ''}
+            sessionId={sessionIdFromUrl || sessionData?.sessionId || ''}
             isFullscreen={isFullscreen}
             onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
             isRecording={isRecording}
